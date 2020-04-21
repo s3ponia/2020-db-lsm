@@ -7,11 +7,11 @@ import ru.mail.polis.Record;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Collections;
+import java.util.TreeSet;
 
 public class DAOImpl implements DAO {
 
