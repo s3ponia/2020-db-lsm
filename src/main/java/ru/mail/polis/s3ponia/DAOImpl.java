@@ -20,13 +20,12 @@ public class DAOImpl implements DAO {
 
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
-        var record = Record.of(key, value);
-        keyToRecord.put(key, record);
+        keyToRecord.put(key, Record.of(key, value));
     }
 
     @Override
     public void remove(@NotNull final ByteBuffer key) throws IOException {
-        final var record = keyToRecord.remove(key);
+        keyToRecord.remove(key);
     }
 
     @Override
