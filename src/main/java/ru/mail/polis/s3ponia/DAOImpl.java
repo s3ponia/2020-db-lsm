@@ -6,11 +6,11 @@ import ru.mail.polis.Record;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.SortedSet;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Collections;
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 public class DAOImpl implements DAO {
@@ -31,8 +31,11 @@ public class DAOImpl implements DAO {
 
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
-        final var record = Record.of(key, value);
-        orderedRecords.remove(record);
+        var record = keyToRecord.get(key);
+        if (record != null) {
+            orderedRecords.remove(record);
+        }
+        record = Record.of(key, value);
         keyToRecord.put(key, record);
         orderedRecords.add(record);
     }
