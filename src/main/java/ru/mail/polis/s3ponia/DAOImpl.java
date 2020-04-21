@@ -1,24 +1,28 @@
 package ru.mail.polis.s3ponia;
 
-import com.google.common.collect.Iterators;
 import org.jetbrains.annotations.NotNull;
 import ru.mail.polis.DAO;
 import ru.mail.polis.Record;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Collections;
 
 public class DAOImpl implements DAO {
 
-    private final TreeSet<Record> orderedRecords = new TreeSet<>();
-    private final HashMap<ByteBuffer, Record> keyToRecord = new HashMap<>();
+    private final SortedSet<Record> orderedRecords = new TreeSet<>();
+    private final Map<ByteBuffer, Record> keyToRecord = new HashMap<>();
 
     @NotNull
     @Override
     public Iterator<Record> iterator(@NotNull final ByteBuffer from) throws IOException {
         final var record = keyToRecord.get(from);
-        if(record == null) {
+        if (record == null) {
             return Collections.emptyIterator();
         } else {
             return orderedRecords.tailSet(keyToRecord.get(from)).iterator();
