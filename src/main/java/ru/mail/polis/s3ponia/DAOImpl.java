@@ -12,17 +12,17 @@ import java.util.TreeMap;
 
 public class DAOImpl implements DAO {
 
-    private final SortedMap<ByteBuffer, Record> keyToRecord = new TreeMap<>();
+    private final SortedMap<ByteBuffer, ByteBuffer> keyToRecord = new TreeMap<>();
 
     @NotNull
     @Override
     public Iterator<Record> iterator(@NotNull final ByteBuffer from) throws IOException {
-        return keyToRecord.tailMap(from).values().stream().iterator();
+        return keyToRecord.tailMap(from).entrySet().stream().map(e -> Record.of(e.getKey(), e.getValue())).iterator();
     }
 
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
-        keyToRecord.put(key, Record.of(key, value));
+        keyToRecord.put(key, value);
     }
 
     @Override
