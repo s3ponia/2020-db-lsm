@@ -49,7 +49,9 @@ class PersistenceTest extends TestBase {
         // Create, fill and remove storage
         try {
             try (DAO dao = DAOFactory.create(data)) {
-                dao.upsert(key, randomValue());
+                final ByteBuffer value = randomValue();
+                dao.upsert(key, value);
+                assertEquals(value, dao.get(key));
             }
         } finally {
             Files.recursiveDelete(data);
@@ -72,6 +74,7 @@ class PersistenceTest extends TestBase {
         // Create, fill and close storage
         try (DAO dao = DAOFactory.create(data)) {
             dao.upsert(key, value);
+            assertEquals(value, dao.get(key));
         }
 
         // Recreate dao
@@ -89,6 +92,7 @@ class PersistenceTest extends TestBase {
         // Create dao and fill data
         try (DAO dao = DAOFactory.create(data)) {
             dao.upsert(key, value);
+            assertEquals(value, dao.get(key));
         }
 
         // Load data and check
@@ -146,7 +150,9 @@ class PersistenceTest extends TestBase {
             for (int i = 0; i < records; i++) {
                 final ByteBuffer key = randomKey();
                 keys.add(key);
-                dao.upsert(join(key, suffix), value);
+                final ByteBuffer suffixed = join(key, suffix);
+                dao.upsert(suffixed, value);
+                assertEquals(value, dao.get(suffixed));
             }
         }
 
@@ -170,8 +176,10 @@ class PersistenceTest extends TestBase {
         try (DAO dao = DAOFactory.create(data)) {
             for (int i = 0; i < records; i++) {
                 final ByteBuffer key = randomKey();
+                final ByteBuffer value = join(key, suffix);
                 keys.add(key);
-                dao.upsert(key, join(key, suffix));
+                dao.upsert(key, value);
+                assertEquals(value, dao.get(key));
             }
         }
 
@@ -196,8 +204,8 @@ class PersistenceTest extends TestBase {
         final Random values = new Random(valueSeed);
         final Map<Integer, Byte> samples = new HashMap<>(sampleCount);
 
-        // Create, fill and close storage (LSM is fast for writes)
         try (final DAO dao = DAOFactory.create(data)) {
+            // Populate (LSM is fast for writes)
             for (int i = 0; i < records; i++) {
                 final int keyPayload = keys.nextInt();
                 final ByteBuffer key = ByteBuffer.allocate(Integer.BYTES);
@@ -215,12 +223,11 @@ class PersistenceTest extends TestBase {
                 if (i % sampleCount == 0 ||
                         samples.containsKey(keyPayload)) {
                     samples.put(keyPayload, valuePayload);
+                    assertEquals(value, dao.get(key));
                 }
             }
-        }
 
-        // Recreate dao and check the contents with sampling (LSM is slow for reads)
-        try (final DAO dao = DAOFactory.create(data)) {
+            // Check the contents with sampling (LSM is slow for reads)
             for (final Map.Entry<Integer, Byte> sample : samples.entrySet()) {
                 final ByteBuffer key = ByteBuffer.allocate(Integer.BYTES);
                 key.putInt(sample.getKey());
@@ -247,6 +254,7 @@ class PersistenceTest extends TestBase {
             final ByteBuffer value = randomValue();
             try (DAO dao = DAOFactory.create(data)) {
                 dao.upsert(key, value);
+                assertEquals(value, dao.get(key));
             }
 
             // Check

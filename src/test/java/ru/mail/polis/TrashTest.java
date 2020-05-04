@@ -43,6 +43,29 @@ class TrashTest extends TestBase {
     }
 
     @Test
+    void ignoreTrashDirectories(@TempDir File data) throws IOException {
+        // Reference value
+        final ByteBuffer key = randomKey();
+        final ByteBuffer value = randomValue();
+
+        // Create dao and fill data
+        try (DAO dao = DAOFactory.create(data)) {
+            dao.upsert(key, value);
+        }
+
+        createTrashDirectory(data, "trash.txt");
+        createTrashDirectory(data, "trash.dat");
+        createTrashDirectory(data, "trash");
+        createTrashDirectory(data, "trash_0");
+        createTrashDirectory(data, "trash.db");
+
+        // Load and check stored value
+        try (DAO dao = DAOFactory.create(data)) {
+            assertEquals(value, dao.get(key));
+        }
+    }
+
+    @Test
     void ignoreNonEmptyTrashFiles(@TempDir File data) throws IOException {
         // Reference value
         final ByteBuffer key = randomKey();
@@ -65,14 +88,22 @@ class TrashTest extends TestBase {
         }
     }
 
-    private static void createTrashFile(final File dir,
-                                        final String name) throws IOException {
+    private static void createTrashFile(
+            final File dir,
+            final String name) throws IOException {
         assertTrue(new File(dir, name).createNewFile());
     }
 
-    private static void createTrashFile(final File dir,
-                                        final String name,
-                                        final ByteBuffer content) throws IOException {
+    private static void createTrashDirectory(
+            final File dir,
+            final String name) {
+        assertTrue(new File(dir, name).mkdir());
+    }
+
+    private static void createTrashFile(
+            final File dir,
+            final String name,
+            final ByteBuffer content) throws IOException {
         try (final FileChannel ch =
                      FileChannel.open(
                              Paths.get(dir.getAbsolutePath(), name),
