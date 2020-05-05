@@ -18,6 +18,7 @@ package ru.mail.polis;
 
 import org.jetbrains.annotations.NotNull;
 import ru.mail.polis.s3ponia.DAOImpl;
+import ru.mail.polis.s3ponia.PersistenceDAO;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,6 +55,6 @@ public final class DAOFactory {
             throw new IllegalArgumentException("Path is not a directory: " + data);
         }
 
-        return new DAOImpl();
+        return PersistenceDAO.of(data);
     }
 }

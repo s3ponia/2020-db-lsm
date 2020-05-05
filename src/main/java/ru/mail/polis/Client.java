@@ -113,8 +113,6 @@ public final class Client {
                         break; // For PMD
                 }
             }
-        } finally {
-            dao.close();
         }
     }
 }
