@@ -12,11 +12,11 @@ public class Table {
     private final SortedMap<ByteBuffer, Value> keyToRecord;
 
     public static class Cell implements Comparable<Cell> {
-        private final byte[] key;
+        private final ByteBuffer key;
         private final Value value;
 
         private Cell(@NotNull ByteBuffer key, @NotNull Value value) {
-            this.key = key.array();
+            this.key = key;
             this.value = value;
         }
 
@@ -26,7 +26,7 @@ public class Table {
 
         @NotNull
         public ByteBuffer getKey() {
-            return ByteBuffer.wrap(key);
+            return key;
         }
 
         @NotNull
@@ -41,28 +41,23 @@ public class Table {
     }
 
     public static class Value implements Comparable<Value> {
-        private final byte[] value;
+        private final ByteBuffer value;
         private final long DEAD_FLAG = 0x4000000000000000L;
         private final long deadFlagTimeStamp;
 
         private Value() {
             this.deadFlagTimeStamp = System.currentTimeMillis();
-            this.value = new byte[0];
+            this.value = ByteBuffer.allocate(0);
         }
 
-        public Value(byte[] value, long deadFlagTimeStamp) {
+        public Value(ByteBuffer value, long deadFlagTimeStamp) {
             this.value = value;
             this.deadFlagTimeStamp = deadFlagTimeStamp;
         }
 
         private Value(ByteBuffer value) {
             this.deadFlagTimeStamp = System.currentTimeMillis();
-            this.value = value.array();
-        }
-
-        private Value(ByteBuffer value, long deadFlagTimeStamp) {
-            this.value = value.array();
-            this.deadFlagTimeStamp = deadFlagTimeStamp;
+            this.value = value;
         }
 
         static Value of() {
@@ -78,7 +73,7 @@ public class Table {
         }
 
         ByteBuffer getValue() {
-            return ByteBuffer.wrap(value);
+            return (value);
         }
 
         Value setDeadFlag() {

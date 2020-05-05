@@ -17,12 +17,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class PersistenceDAO implements DAO {
     private final Table currTable = new Table();
     private final DiskManager manager;
     private final long MIN_FREE_MEMORY = 60 * 1024 * 1024;
+    private static final Logger logger = Logger.getLogger(DiskTable.class.getName());
 
     private static class DiskManager {
         static final String META_EXTENSION = ".mdb";
@@ -71,7 +73,7 @@ public class PersistenceDAO implements DAO {
         }
 
         private String getName(final Table dao) {
-            return Integer.toString(Objects.hashCode(dao) | random.nextInt() & ~(1 << Integer.SIZE - 1));
+            return Integer.toString(Objects.hashCode(dao) | (random.nextInt() & ~(1 << (Integer.SIZE - 1))));
         }
 
         DiskManager(final Path file) throws IOException {
@@ -108,7 +110,7 @@ public class PersistenceDAO implements DAO {
             private int elementIndex;
 
             private Cell getCell(final int index) throws IOException {
-                if(index >= elementsQuantity)
+                if (index >= elementsQuantity)
                     throw new ArrayIndexOutOfBoundsException("Out of bound");
                 return readCell(getElementShift(index), getElementSize(index));
             }
@@ -128,7 +130,7 @@ public class PersistenceDAO implements DAO {
                     }
                 }
 
-                 return right;
+                return right;
             }
 
             DiskTableIterator(@NotNull ByteBuffer key) throws IOException {
@@ -146,7 +148,7 @@ public class PersistenceDAO implements DAO {
                 try {
                     result = getCell(elementIndex);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    logger.warning(e.toString());
                 }
                 ++elementIndex;
                 return result;
@@ -216,7 +218,7 @@ public class PersistenceDAO implements DAO {
             try {
                 return new DiskTable(path);
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.warning(e.toString());
                 return new DiskTable();
             }
         }
@@ -251,7 +253,7 @@ public class PersistenceDAO implements DAO {
             try {
                 diskIterators.add(diskTable.iterator(from));
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.warning(e.toString());
             }
         });
         final var merge = Iterators.mergeSorted(diskIterators, Cell::compareTo);
