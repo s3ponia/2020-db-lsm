@@ -17,7 +17,6 @@
 package ru.mail.polis;
 
 import org.jetbrains.annotations.NotNull;
-import ru.mail.polis.s3ponia.DAOImpl;
 import ru.mail.polis.s3ponia.PersistenceDAO;
 
 import java.io.File;

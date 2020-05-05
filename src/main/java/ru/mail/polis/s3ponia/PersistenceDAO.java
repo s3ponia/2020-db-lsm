@@ -16,14 +16,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Random;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class PersistenceDAO implements DAO {
     private final Table currTable = new Table();
     private final DiskManager manager;
-    private final long MIN_FREE_MEMORY = 60 * 1024 * 1024;
+    static private final long MIN_FREE_MEMORY = 60 * 1024 * 1024;
     private static final Logger logger = Logger.getLogger(DiskTable.class.getName());
 
     private static class DiskManager {
@@ -33,13 +37,14 @@ public class PersistenceDAO implements DAO {
         private final Random random = new Random();
 
         private void saveTo(final Table dao, final Path file) throws IOException {
-            if (!Files.exists(file))
+            if (!Files.exists(file)) {
                 Files.createFile(file);
+            }
             try (FileChannel writer = FileChannel.open(file, StandardOpenOption.WRITE)) {
                 var shifts = new int[dao.size()];
                 shifts[0] = 0;
                 var index = 0;
-                var iterator = dao.iterator();
+                final var iterator = dao.iterator();
                 /*
                     Cell stored structure:
                         [DeadFlagTimeStamp][KeySize][Key][Value]
@@ -48,10 +53,10 @@ public class PersistenceDAO implements DAO {
                         [Cell][Cell][Cell]....[shifts][shitsSize]
                  */
                 while (iterator.hasNext()) {
-                    var cell = iterator.next();
+                    final var cell = iterator.next();
                     var nextShift = shifts[index];
-                    var key = cell.getKey();
-                    var value = cell.getValue();
+                    final var key = cell.getKey();
+                    final var value = cell.getValue();
 
                     nextShift += key.remaining() + value.getValue().remaining() + Long.BYTES /* Meta size */
                             + Integer.BYTES /* Shift size */;
@@ -61,11 +66,12 @@ public class PersistenceDAO implements DAO {
                     writer.write(key);
                     writer.write(value.getValue());
 
-                    if (index < dao.size() - 1)
+                    if (index < dao.size() - 1) {
                         shifts[++index] = nextShift;
+                    }
                 }
 
-                var buffer = ByteBuffer.allocate(shifts.length * Integer.BYTES);
+                final var buffer = ByteBuffer.allocate(shifts.length * Integer.BYTES);
                 buffer.asIntBuffer().put(shifts).flip();
                 writer.write(buffer);
                 writer.write(ByteBuffer.allocate(Integer.BYTES).putInt(dao.size()).flip());
@@ -78,8 +84,9 @@ public class PersistenceDAO implements DAO {
 
         DiskManager(final Path file) throws IOException {
             metaFile = file;
-            if (!Files.exists(metaFile))
+            if (!Files.exists(metaFile)) {
                 Files.createFile(metaFile);
+            }
         }
 
         List<DiskTable> diskTables() throws IOException {
@@ -110,12 +117,13 @@ public class PersistenceDAO implements DAO {
             private int elementIndex;
 
             private Cell getCell(final int index) throws IOException {
-                if (index >= elementsQuantity)
+                if (index >= elementsQuantity) {
                     throw new ArrayIndexOutOfBoundsException("Out of bound");
+                }
                 return readCell(getElementShift(index), getElementSize(index));
             }
 
-            private int getElementIndex(@NotNull ByteBuffer key) throws IOException {
+            private int getElementIndex(@NotNull final ByteBuffer key) throws IOException {
                 int left = 0;
                 int right = elementsQuantity - 1;
                 while (left < right - 1) {
@@ -133,7 +141,7 @@ public class PersistenceDAO implements DAO {
                 return right;
             }
 
-            DiskTableIterator(@NotNull ByteBuffer key) throws IOException {
+            DiskTableIterator(@NotNull final ByteBuffer key) throws IOException {
                 elementIndex = getElementIndex(key);
             }
 
@@ -210,7 +218,7 @@ public class PersistenceDAO implements DAO {
             elementsQuantity = buff.flip().getInt();
         }
 
-        public Iterator<Cell> iterator(@NotNull ByteBuffer from) throws IOException {
+        public Iterator<Cell> iterator(@NotNull final ByteBuffer from) throws IOException {
             return new DiskTableIterator(from);
         }
 
@@ -239,13 +247,13 @@ public class PersistenceDAO implements DAO {
         }
     }
 
-    static public PersistenceDAO of(final File data) throws IOException {
+    public static PersistenceDAO of(final File data) throws IOException {
         return new PersistenceDAO(data);
     }
 
     @NotNull
     @Override
-    public Iterator<Record> iterator(@NotNull ByteBuffer from) throws IOException {
+    public Iterator<Record> iterator(@NotNull final ByteBuffer from) throws IOException {
         final var diskTables = manager.diskTables();
         final var diskIterators = new ArrayList<Iterator<Cell>>();
         diskIterators.add(currTable.iterator(from));
@@ -264,20 +272,21 @@ public class PersistenceDAO implements DAO {
     }
 
     @Override
-    public void upsert(@NotNull ByteBuffer key, @NotNull ByteBuffer value) throws IOException {
+    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
         currTable.upsert(key, value);
         checkToFlush();
     }
 
     @Override
-    public void remove(@NotNull ByteBuffer key) throws IOException {
+    public void remove(@NotNull final ByteBuffer key) throws IOException {
         currTable.remove(key);
         checkToFlush();
     }
 
     @Override
     public void close() throws IOException {
-        if (currTable.size() > 0)
+        if (currTable.size() > 0) {
             flush();
+        }
     }
 }
