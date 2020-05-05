@@ -13,8 +13,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.logging.Logger;
 import java.util.NoSuchElementException;
+import java.util.logging.Logger;
 
 public final class PersistenceDAO implements DAO {
     private final Table currTable = new Table();
