@@ -9,13 +9,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
-    private static int gen = 0;
+    private static Random gen = new Random();
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         if (!Files.exists(file)) {
@@ -53,7 +54,7 @@ public class DiskManager {
     }
 
     private static String getName() {
-        return Integer.toString(++gen & ~(1 << Integer.SIZE - 1));
+        return Integer.toString(gen.nextInt() & ~(1 << Integer.SIZE - 1));
     }
 
     DiskManager(final Path file) throws IOException {

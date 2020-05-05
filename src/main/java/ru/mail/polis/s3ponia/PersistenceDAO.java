@@ -11,10 +11,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.logging.Logger;
+import java.util.NoSuchElementException;
 
 public final class PersistenceDAO implements DAO {
     private final Table currTable = new Table();
