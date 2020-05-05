@@ -3,7 +3,10 @@ package ru.mail.polis.s3ponia;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.SortedMap;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.TreeMap;
 
 public class Table {
     private final SortedMap<ByteBuffer, Value> keyToRecord;
@@ -23,7 +26,7 @@ public class Table {
 
         @NotNull
         public ByteBuffer getKey() {
-            return key;
+            return key.asReadOnlyBuffer();
         }
 
         @NotNull
@@ -38,23 +41,23 @@ public class Table {
     }
 
     public static class Value implements Comparable<Value> {
-        private final ByteBuffer value;
+        private final ByteBuffer byteBuffer;
         private static final long DEAD_FLAG = 0x4000000000000000L;
         private final long deadFlagTimeStamp;
 
         private Value() {
             this.deadFlagTimeStamp = System.currentTimeMillis();
-            this.value = ByteBuffer.allocate(0);
+            this.byteBuffer = ByteBuffer.allocate(0);
         }
 
         public Value(final ByteBuffer value, final long deadFlagTimeStamp) {
-            this.value = value;
+            this.byteBuffer = value;
             this.deadFlagTimeStamp = deadFlagTimeStamp;
         }
 
         private Value(final ByteBuffer value) {
             this.deadFlagTimeStamp = System.currentTimeMillis();
-            this.value = value;
+            this.byteBuffer = value;
         }
 
         static Value of() {
@@ -62,23 +65,23 @@ public class Table {
         }
 
         static Value of(final ByteBuffer value) {
-            return new Value(value.rewind());
+            return new Value(value);
         }
 
-        static Value of(final ByteBuffer value, long deadFlagTimeStamp) {
+        static Value of(final ByteBuffer value, final long deadFlagTimeStamp) {
             return new Value(value, deadFlagTimeStamp);
         }
 
         ByteBuffer getValue() {
-            return value;
+            return byteBuffer.asReadOnlyBuffer();
         }
 
         Value setDeadFlag() {
-            return new Value(value, deadFlagTimeStamp | DEAD_FLAG);
+            return new Value(byteBuffer, deadFlagTimeStamp | DEAD_FLAG);
         }
 
         Value unsetDeadFlag() {
-            return new Value(value, deadFlagTimeStamp & ~DEAD_FLAG);
+            return new Value(byteBuffer, deadFlagTimeStamp & ~DEAD_FLAG);
         }
 
         boolean isDead() {
@@ -89,9 +92,13 @@ public class Table {
             return deadFlagTimeStamp;
         }
 
+        public long getTimeStamp() {
+            return deadFlagTimeStamp & ~DEAD_FLAG;
+        }
+
         @Override
         public int compareTo(@NotNull final Value o) {
-            return Long.compare(o.getDeadFlagTimeStamp() & ~DEAD_FLAG, this.getDeadFlagTimeStamp() & ~DEAD_FLAG);
+            return Comparator.comparing(Value::getTimeStamp).reversed().compare(this, o);
         }
     }
 
@@ -107,11 +114,19 @@ public class Table {
         return keyToRecord.entrySet().stream().map(e -> Cell.of(e.getKey(), e.getValue())).iterator();
     }
 
-    @NotNull
     public Iterator<Cell> iterator(@NotNull final ByteBuffer from) {
         return keyToRecord.tailMap(from).entrySet().stream().map(
                 e -> Cell.of(e.getKey(), e.getValue())
         ).iterator();
+    }
+
+    public ByteBuffer get(@NotNull final ByteBuffer key) {
+        final var val = keyToRecord.get(key);
+        return val == null ? null : val.getValue();
+    }
+
+    public void upsert(@NotNull final ByteBuffer key, @NotNull final Value value) {
+        keyToRecord.put(key, value);
     }
 
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {

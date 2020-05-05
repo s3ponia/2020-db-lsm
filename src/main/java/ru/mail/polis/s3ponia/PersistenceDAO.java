@@ -6,6 +6,7 @@ import ru.mail.polis.DAO;
 import ru.mail.polis.Iters;
 import ru.mail.polis.Record;
 import ru.mail.polis.s3ponia.Table.Cell;
+import ru.mail.polis.s3ponia.Table.Value;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,27 +19,30 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
+import java.util.NoSuchElementException;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class PersistenceDAO implements DAO {
     private final Table currTable = new Table();
     private final DiskManager manager;
-    static private final long MIN_FREE_MEMORY = 60 * 1024 * 1024;
+    private ByteBuffer cacheLastKey = null;
+    private ByteBuffer cacheLastValue = null;
+    private static final long MIN_FREE_MEMORY = 128 * 1024 * 1024 / 16;
     private static final Logger logger = Logger.getLogger(DiskTable.class.getName());
 
     private static class DiskManager {
         static final String META_EXTENSION = ".mdb";
         static final String TABLE_EXTENSION = ".db";
         private final Path metaFile;
-        private final Random random = new Random();
+        private static int counter = 0;
 
         private void saveTo(final Table dao, final Path file) throws IOException {
             if (!Files.exists(file)) {
                 Files.createFile(file);
+            } else {
+                throw new RuntimeException("Save to existing file");
             }
             try (FileChannel writer = FileChannel.open(file, StandardOpenOption.WRITE)) {
                 var shifts = new int[dao.size()];
@@ -79,7 +83,7 @@ public class PersistenceDAO implements DAO {
         }
 
         private String getName(final Table dao) {
-            return Integer.toString(Objects.hashCode(dao) | (random.nextInt() & ~(1 << (Integer.SIZE - 1))));
+            return Integer.toString((++counter & ~(1 << (Integer.SIZE - 1))));
         }
 
         DiskManager(final Path file) throws IOException {
@@ -90,11 +94,14 @@ public class PersistenceDAO implements DAO {
         }
 
         List<DiskTable> diskTables() throws IOException {
-            return Files.readAllLines(this.metaFile).stream().map(Paths::get).map(DiskTable::of).collect(Collectors.toList());
+            return Files.readAllLines(this.metaFile).stream()
+                    .map(Paths::get)
+                    .map(DiskTable::of)
+                    .collect(Collectors.toList());
         }
 
         void save(final Table dao) throws IOException {
-            try (var writer = Files.newBufferedWriter(this.metaFile, Charset.defaultCharset())) {
+            try (var writer = Files.newBufferedWriter(this.metaFile, Charset.defaultCharset(), StandardOpenOption.APPEND)) {
                 final var fileName = getName(dao) + TABLE_EXTENSION;
                 writer.write(Paths.get(metaFile.getParent().toString(), fileName) + "\n");
                 saveTo(dao, Paths.get(metaFile.getParent().toString(), fileName));
@@ -110,14 +117,14 @@ public class PersistenceDAO implements DAO {
         [Cell][Cell][Cell]....[shifts : int[]][shitsSize : int]
     */
     private static class DiskTable {
-        private final int elementsQuantity;
+        private final int[] shifts;
         private final FileChannel fileChannel;
 
         private class DiskTableIterator implements Iterator<Cell> {
             private int elementIndex;
 
             private Cell getCell(final int index) throws IOException {
-                if (index >= elementsQuantity) {
+                if (index >= shifts.length - 1) {
                     throw new ArrayIndexOutOfBoundsException("Out of bound");
                 }
                 return readCell(getElementShift(index), getElementSize(index));
@@ -125,20 +132,22 @@ public class PersistenceDAO implements DAO {
 
             private int getElementIndex(@NotNull final ByteBuffer key) throws IOException {
                 int left = 0;
-                int right = elementsQuantity - 1;
-                while (left < right - 1) {
+                int right = shifts.length - 2;
+                while (left <= right) {
                     final int mid = (left + right) / 2;
                     final ByteBuffer midKey = getCell(mid).getKey();
                     final int compareResult = midKey.compareTo(key);
 
                     if (compareResult < 0) {
-                        left = mid;
+                        left = mid + 1;
                     } else if (compareResult > 0) {
-                        right = mid;
+                        right = mid - 1;
+                    } else {
+                        return mid;
                     }
                 }
 
-                return right;
+                return left;
             }
 
             DiskTableIterator(@NotNull final ByteBuffer key) throws IOException {
@@ -147,7 +156,7 @@ public class PersistenceDAO implements DAO {
 
             @Override
             public boolean hasNext() {
-                return elementIndex < elementsQuantity;
+                return elementIndex < shifts.length - 1;
             }
 
             @Override
@@ -163,59 +172,60 @@ public class PersistenceDAO implements DAO {
             }
         }
 
-        private int getElementSize(final int index) throws IOException {
-            if (index == elementsQuantity - 1) {
+        private int getElementSize(final int index) {
+            if (index == shifts.length - 1) {
                 return getShiftsArrayShift() - getElementShift(index);
             } else {
                 return getElementShift(index + 1) - getElementShift(index);
             }
         }
 
-        private int getShiftsArrayShift() throws IOException {
-            return (int) fileChannel.size() - Integer.BYTES * (elementsQuantity + 1);
+        private int getShiftsArrayShift() {
+            return shifts[shifts.length - 1];
         }
 
-        private int getElementShift(final int index) throws IOException {
-            final var size = fileChannel.size();
-            final var buff = ByteBuffer.allocate(Integer.BYTES);
-
-            final var pos = size - Integer.BYTES - (elementsQuantity - index) * Integer.BYTES;
-
-            fileChannel.read(buff, pos);
-
-            return buff.flip().getInt();
+        private int getElementShift(final int index) {
+            return shifts[index];
         }
 
-        private Cell readCell(final ByteBuffer buff) {
+        private Cell readCell(final ByteBuffer buff, final int size) {
             final var deadFlagTimeStamp = buff.getLong();
             final var keySize = buff.getInt();
             final var key = ByteBuffer.allocate(keySize);
-            buff.get(key.array());
+            buff.limit(buff.position() + key.remaining());
+            key.put(buff);
+            buff.limit(buff.capacity());
 
-            final var value = ByteBuffer.allocate(buff.remaining());
-            buff.get(value.array());
+            final var value = ByteBuffer.allocate(size - keySize - Integer.BYTES - Long.BYTES);
+            value.put(buff);
 
-            return Cell.of(key.flip(), Table.Value.of(value.flip(), deadFlagTimeStamp));
+            return Cell.of(key.flip(), Value.of(value.flip(), deadFlagTimeStamp));
         }
 
         private Cell readCell(final long position, final int size) throws IOException {
             final var buff = ByteBuffer.allocate(size);
             fileChannel.read(buff, position);
 
-            return readCell(buff.flip());
+            return readCell(buff.flip(), size);
         }
 
         public DiskTable() {
-            elementsQuantity = 0;
+            shifts = null;
             fileChannel = null;
         }
 
         DiskTable(final Path path) throws IOException {
             fileChannel = FileChannel.open(path, StandardOpenOption.READ);
             final long size = fileChannel.size();
-            final var buff = ByteBuffer.allocate(Integer.BYTES);
-            fileChannel.read(buff, size - Integer.BYTES);
-            elementsQuantity = buff.flip().getInt();
+            final var buffSize = ByteBuffer.allocate(Integer.BYTES);
+            fileChannel.read(buffSize, size - Integer.BYTES);
+            final var elementsQuantity = buffSize.flip().getInt();
+            final var arrayShift = (int) size - Integer.BYTES * (elementsQuantity + 1);
+            shifts = new int[elementsQuantity + 1];
+            final var buff = ByteBuffer.allocate(Integer.BYTES * shifts.length);
+            fileChannel.read(buff, arrayShift);
+            buff.flip().asIntBuffer().get(shifts);
+            shifts[elementsQuantity] = arrayShift;
         }
 
         public Iterator<Cell> iterator(@NotNull final ByteBuffer from) throws IOException {
@@ -271,9 +281,35 @@ public class PersistenceDAO implements DAO {
         return Iterators.transform(removeDead, c -> Record.of(c.getKey(), c.getValue().getValue()));
     }
 
+    @NotNull
+    @Override
+    public ByteBuffer get(@NotNull final ByteBuffer key) throws IOException {
+        final var key_ = key.rewind().asReadOnlyBuffer();
+        if (cacheLastKey != null && cacheLastKey.equals(key_)) {
+            return cacheLastValue;
+        }
+        final Iterator<Record> iter;
+        iter = iterator(key_);
+        if (!iter.hasNext()) {
+            throw new NoSuchElementException("Not found");
+        }
+
+        final Record next = iter.next();
+        if (next.getKey().equals(key_)) {
+            final var value = next.getValue();
+            cacheLastKey = key_;
+            cacheLastValue = value;
+            return value;
+        } else {
+            throw new NoSuchElementException("Not found");
+        }
+    }
+
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
         currTable.upsert(key, value);
+        cacheLastKey = key;
+        cacheLastValue = value;
         checkToFlush();
     }
 
@@ -285,7 +321,7 @@ public class PersistenceDAO implements DAO {
 
     @Override
     public void close() throws IOException {
-        if (currTable.size() > 0) {
+        if (currTable.size() > 0 && cacheLastValue != null && cacheLastKey != null) {
             flush();
         }
     }
