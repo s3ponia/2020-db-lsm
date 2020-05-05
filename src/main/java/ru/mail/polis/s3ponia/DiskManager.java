@@ -15,26 +15,17 @@ public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
-    private static int counter = 0;
+    private static int gen = 0;
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         if (!Files.exists(file)) {
             Files.createFile(file);
-        } else {
-            throw new RuntimeException("Save to existing file");
         }
         try (FileChannel writer = FileChannel.open(file, StandardOpenOption.WRITE)) {
             var shifts = new int[dao.size()];
             shifts[0] = 0;
             var index = 0;
             final var iterator = dao.iterator();
-                /*
-                    Cell stored structure:
-                        [DeadFlagTimeStamp][KeySize][Key][Value]
-
-                    File structure:
-                        [Cell][Cell][Cell]....[shifts][shitsSize]
-                 */
             while (iterator.hasNext()) {
                 final var cell = iterator.next();
                 var nextShift = shifts[index];
@@ -61,8 +52,8 @@ public class DiskManager {
         }
     }
 
-    private String getName() {
-        return Integer.toString((++counter & ~(1 << (Integer.SIZE - 1))));
+    private static String getName() {
+        return Integer.toString(++gen & ~(1 << Integer.SIZE - 1));
     }
 
     DiskManager(final Path file) throws IOException {

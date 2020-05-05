@@ -16,11 +16,11 @@ import java.util.NoSuchElementException;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-public class PersistenceDAO implements DAO {
+public final class PersistenceDAO implements DAO {
     private final Table currTable = new Table();
     private final DiskManager manager;
-    private ByteBuffer cacheLastKey = null;
-    private ByteBuffer cacheLastValue = null;
+    private ByteBuffer cacheLastKey;
+    private ByteBuffer cacheLastValue;
     private static final long MIN_FREE_MEMORY = 128 * 1024 * 1024 / 16;
     private static final Logger logger = Logger.getLogger(PersistenceDAO.class.getName());
 

@@ -114,6 +114,12 @@ public class Table {
         return keyToRecord.entrySet().stream().map(e -> Cell.of(e.getKey(), e.getValue())).iterator();
     }
 
+    /**
+     * Provides iterator (possibly empty) over {@link Cell}s starting at "from" key (inclusive)
+     * in <b>ascending</b> order according to {@link Cell#compareTo(Cell)}.
+     * N.B. The iterator should be obtained as fast as possible, e.g.
+     * one should not "seek" to start point ("from" element) in linear time ;)
+     */
     public Iterator<Cell> iterator(@NotNull final ByteBuffer from) {
         return keyToRecord.tailMap(from).entrySet().stream().map(
                 e -> Cell.of(e.getKey(), e.getValue())
