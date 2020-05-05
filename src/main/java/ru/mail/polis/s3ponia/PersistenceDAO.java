@@ -82,7 +82,7 @@ public class PersistenceDAO implements DAO {
             }
         }
 
-        private String getName(final Table dao) {
+        private String getName() {
             return Integer.toString((++counter & ~(1 << (Integer.SIZE - 1))));
         }
 
@@ -102,7 +102,7 @@ public class PersistenceDAO implements DAO {
 
         void save(final Table dao) throws IOException {
             try (var writer = Files.newBufferedWriter(this.metaFile, Charset.defaultCharset(), StandardOpenOption.APPEND)) {
-                final var fileName = getName(dao) + TABLE_EXTENSION;
+                final var fileName = getName() + TABLE_EXTENSION;
                 writer.write(Paths.get(metaFile.getParent().toString(), fileName) + "\n");
                 saveTo(dao, Paths.get(metaFile.getParent().toString(), fileName));
             }
