@@ -54,7 +54,7 @@ public class DiskManager {
     }
 
     private static String getName() {
-        return Integer.toString(gen.nextInt() & ~(1 << Integer.SIZE - 1));
+        return Integer.toString(gen.nextInt() & ~(1 << (Integer.SIZE - 1)));
     }
 
     DiskManager(final Path file) throws IOException {
