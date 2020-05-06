@@ -16,14 +16,15 @@ import java.util.Iterator;
 import java.util.logging.Logger;
 
 public final class PersistenceDAO implements DAO {
-    private final Table currTable = new Table();
     private final DiskManager manager;
+    private final Table currTable;
     private static final long MIN_FREE_MEMORY = 128 * 1024 * 1024 / 16;
     private static final Logger logger = Logger.getLogger(PersistenceDAO.class.getName());
 
     private PersistenceDAO(final File data) throws IOException {
         this.manager = new DiskManager(Paths.get(data.getAbsolutePath(),
                 DiskManager.META_PREFIX + data.getName() + DiskManager.META_EXTENSION));
+        this.currTable = new Table(manager.getGeneration());
     }
 
     private void flush() throws IOException {

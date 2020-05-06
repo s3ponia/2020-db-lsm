@@ -23,7 +23,12 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -128,24 +133,7 @@ class PersistenceTest extends TestBase {
         // Reopen
         try (DAO dao = DAOFactory.create(data)) {
             // Last value should win
-            if (!Objects.equals(value2, dao.get(key))) {
-                System.out.println(data.toPath());
-                System.out.print("[");
-                for (var b :
-                        key.array()) {
-                    System.out.printf("%x, ", b);
-                }
-                System.out.println("]");
-                System.out.print("[");
-                for (var b :
-                        value2.array()) {
-                    System.out.printf("%x, ", b);
-                }
-                System.out.println("]");
-                System.exit(1);
-            }
             assertEquals(value2, dao.get(key));
-
         }
     }
 

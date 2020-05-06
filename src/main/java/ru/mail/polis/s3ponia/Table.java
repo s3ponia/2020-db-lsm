@@ -10,6 +10,7 @@ import java.util.TreeMap;
 
 public class Table {
     private final SortedMap<ByteBuffer, Value> keyToRecord;
+    private final int generation;
 
     public static class Cell implements Comparable<Cell> {
         @NotNull
@@ -52,13 +53,13 @@ public class Table {
             this.byteBuffer = ByteBuffer.allocate(0);
         }
 
-        public Value(final ByteBuffer value, final long deadFlagTimeStamp) {
+        public Value(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
             this.byteBuffer = value;
             this.deadFlagTimeStamp = deadFlagTimeStamp;
         }
 
-        private Value(final ByteBuffer value) {
-            this.deadFlagTimeStamp = System.currentTimeMillis();
+        private Value(final ByteBuffer value, final int generation) {
+            this.deadFlagTimeStamp = System.currentTimeMillis() + generation;
             this.byteBuffer = value;
         }
 
@@ -66,12 +67,12 @@ public class Table {
             return new Value();
         }
 
-        static Value of(final ByteBuffer value) {
-            return new Value(value);
+        static Value of(final ByteBuffer value, final int generation) {
+            return new Value(value, generation);
         }
 
         static Value of(final ByteBuffer value, final long deadFlagTimeStamp) {
-            return new Value(value, deadFlagTimeStamp);
+            return new Value(value, deadFlagTimeStamp, 0);
         }
 
         ByteBuffer getValue() {
@@ -79,11 +80,11 @@ public class Table {
         }
 
         Value setDeadFlag() {
-            return new Value(byteBuffer, deadFlagTimeStamp | DEAD_FLAG);
+            return Value.of(byteBuffer, deadFlagTimeStamp | DEAD_FLAG);
         }
 
         Value unsetDeadFlag() {
-            return new Value(byteBuffer, deadFlagTimeStamp & ~DEAD_FLAG);
+            return Value.of(byteBuffer, deadFlagTimeStamp & ~DEAD_FLAG);
         }
 
         boolean isDead() {
@@ -104,8 +105,9 @@ public class Table {
         }
     }
 
-    public Table() {
+    public Table(int generation) {
         this.keyToRecord = new TreeMap<>();
+        this.generation = generation;
     }
 
     public int size() {
@@ -138,7 +140,7 @@ public class Table {
     }
 
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
-        keyToRecord.put(key, Value.of(value));
+        keyToRecord.put(key, Value.of(value, generation));
     }
 
     public void remove(@NotNull final ByteBuffer key) {
