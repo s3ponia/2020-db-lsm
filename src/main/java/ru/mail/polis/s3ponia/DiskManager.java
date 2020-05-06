@@ -53,7 +53,7 @@ public class DiskManager {
     }
 
     private String getName() {
-        byte[] randomBytes = new byte[200];
+        final byte[] randomBytes = new byte[200];
         random.nextBytes(randomBytes);
         return UUID.nameUUIDFromBytes(randomBytes).toString();
     }
