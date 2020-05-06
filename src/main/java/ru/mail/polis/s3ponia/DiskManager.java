@@ -15,7 +15,7 @@ public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
-    private int generation;
+    private long generation;
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         if (!Files.exists(file)) {
@@ -54,7 +54,7 @@ public class DiskManager {
 
     private String getName() {
         ++generation;
-        return Integer.toString(generation & ~(1 << (Integer.SIZE - 1)));
+        return Long.toString(generation & ~(1L << (Integer.SIZE - 1L)));
     }
 
     private void setLastGeneration() throws IOException {
@@ -63,7 +63,7 @@ public class DiskManager {
             return;
         }
         final var lastFile = Paths.get(lines.get(lines.size() - 1)).getFileName().toString();
-        generation = Integer.parseInt(lastFile.substring(0, lastFile.length() - 3)) + 1;
+        generation = Long.parseLong(lastFile.substring(0, lastFile.length() - 3)) + 1L;
     }
 
     DiskManager(final Path file) throws IOException {
