@@ -21,9 +21,6 @@ public class DiskManager {
     private final Random random = new Random(System.currentTimeMillis());
 
     private void saveTo(final Table dao, final Path file) throws IOException {
-        if (Files.exists(file)) {
-            Files.delete(file);
-        }
         Files.createFile(file);
         try (FileChannel writer = FileChannel.open(file, StandardOpenOption.WRITE)) {
             var shifts = new int[dao.size()];
@@ -67,7 +64,7 @@ public class DiskManager {
         final byte[] randomBytes = new byte[200];
         random.nextBytes(randomBytes);
         final var name = UUID.nameUUIDFromBytes(randomBytes).toString();
-        if (fileNames.contains(name)) {
+        if (Files.exists(Paths.get(name))) {
             return getName();
         } else {
             return name;
