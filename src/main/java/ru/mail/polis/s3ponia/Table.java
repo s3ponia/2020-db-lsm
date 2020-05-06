@@ -47,32 +47,40 @@ public class Table {
         private final ByteBuffer byteBuffer;
         private static final long DEAD_FLAG = 0x4000000000000000L;
         private final long deadFlagTimeStamp;
+        private final int generation;
 
         private Value() {
             this.deadFlagTimeStamp = System.currentTimeMillis();
             this.byteBuffer = ByteBuffer.allocate(0);
+            this.generation = 0;
         }
 
         public Value(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
             this.byteBuffer = value;
             this.deadFlagTimeStamp = deadFlagTimeStamp;
+            this.generation = generation;
         }
 
-        private Value(final ByteBuffer value, final int generation) {
-            this.deadFlagTimeStamp = System.currentTimeMillis() + generation;
+        private Value(final ByteBuffer value) {
+            this.deadFlagTimeStamp = System.currentTimeMillis();
             this.byteBuffer = value;
+            this.generation = 0;
         }
 
         static Value of() {
             return new Value();
         }
 
-        static Value of(final ByteBuffer value, final int generation) {
-            return new Value(value, generation);
+        static Value of(final ByteBuffer value) {
+            return new Value(value);
         }
 
         static Value of(final ByteBuffer value, final long deadFlagTimeStamp) {
             return new Value(value, deadFlagTimeStamp, 0);
+        }
+
+        static Value of(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
+            return new Value(value, deadFlagTimeStamp, generation);
         }
 
         ByteBuffer getValue() {
@@ -92,7 +100,7 @@ public class Table {
         }
 
         public long getDeadFlagTimeStamp() {
-            return deadFlagTimeStamp;
+            return deadFlagTimeStamp + generation;
         }
 
         public long getTimeStamp() {
@@ -105,7 +113,7 @@ public class Table {
         }
     }
 
-    public Table(int generation) {
+    public Table(final int generation) {
         this.keyToRecord = new TreeMap<>();
         this.generation = generation;
     }
