@@ -55,6 +55,11 @@ public class Table {
             this.generation = 0;
         }
 
+        /**
+         * @param value - byte buffer value
+         * @param deadFlagTimeStamp - timestamp+dead flag
+         * @param generation - table generation
+         */
         public Value(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
             this.byteBuffer = value;
             this.deadFlagTimeStamp = deadFlagTimeStamp;
