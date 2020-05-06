@@ -70,11 +70,7 @@ public class DiskManager {
         final byte[] randomBytes = new byte[200];
         random.nextBytes(randomBytes);
         final var name = UUID.nameUUIDFromBytes(randomBytes).toString();
-        if (Files.exists(Paths.get(name))) {
-            return getName();
-        } else {
-            return name;
-        }
+        return name;
     }
 
     DiskManager(final Path file) throws IOException {
@@ -116,10 +112,14 @@ public class DiskManager {
 
     void save(final Table dao) throws IOException {
         try (var writer = Files.newBufferedWriter(this.metaFile, Charset.defaultCharset(), StandardOpenOption.APPEND)) {
-            final var fileName = getName() + TABLE_EXTENSION;
-            fileNames.add(Paths.get(metaFile.getParent().toString(), fileName).toString());
-            writer.write(Paths.get(metaFile.getParent().toString(), fileName) + "\n");
-            saveTo(dao, Paths.get(metaFile.getParent().toString(), fileName));
+            var filePath = Paths.get(metaFile.getParent().toString(), getName() + TABLE_EXTENSION);
+            while (Files.exists(filePath)) {
+                filePath = Paths.get(metaFile.getParent().toString(), getName() + TABLE_EXTENSION);
+            }
+            final var fileName = filePath.toString();
+            fileNames.add(fileName);
+            writer.write(fileName + "\n");
+            saveTo(dao, filePath);
         }
     }
 }
