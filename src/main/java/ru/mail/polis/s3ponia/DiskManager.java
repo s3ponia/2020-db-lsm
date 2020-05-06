@@ -17,6 +17,7 @@ public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
+    private final List<String> fileNames;
     private final Random random = new Random(System.currentTimeMillis());
 
     private void saveTo(final Table dao, final Path file) throws IOException {
@@ -55,18 +56,22 @@ public class DiskManager {
         }
     }
 
-    private void setSeed() throws IOException {
-        final var files = Files.readAllLines(metaFile);
-        if (files.isEmpty()) {
+    private void setSeed() {
+        if (fileNames.isEmpty()) {
             return;
         }
-        random.setSeed(files.hashCode());
+        random.setSeed(fileNames.hashCode());
     }
 
     private String getName() {
         final byte[] randomBytes = new byte[200];
         random.nextBytes(randomBytes);
-        return UUID.nameUUIDFromBytes(randomBytes).toString();
+        final var name = UUID.nameUUIDFromBytes(randomBytes).toString();
+        if (fileNames.contains(name)) {
+            return getName();
+        } else {
+            return name;
+        }
     }
 
     DiskManager(final Path file) throws IOException {
@@ -74,6 +79,7 @@ public class DiskManager {
         if (!Files.exists(metaFile)) {
             Files.createFile(metaFile);
         }
+        fileNames = Files.readAllLines(metaFile);
         setSeed();
     }
 
