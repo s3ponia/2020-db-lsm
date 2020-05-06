@@ -106,7 +106,7 @@ public final class PersistenceDAO implements DAO {
 
     @Override
     public void close() throws IOException {
-        if (currTable.size() > 0 && cacheLastValue != null && cacheLastKey != null) {
+        if (currTable.size() > 0) {
             flush();
         }
     }
