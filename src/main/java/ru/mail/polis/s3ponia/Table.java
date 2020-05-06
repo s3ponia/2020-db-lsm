@@ -56,6 +56,7 @@ public class Table {
         }
 
         /**
+         * Value constructor
          * @param value - byte buffer value
          * @param deadFlagTimeStamp - timestamp+dead flag
          * @param generation - table generation
