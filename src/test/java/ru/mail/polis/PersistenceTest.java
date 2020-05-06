@@ -23,12 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Random;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -111,6 +106,7 @@ class PersistenceTest extends TestBase {
 
     @RepeatedTest(1000)
     void replaceWithClose(@TempDir File data) throws Exception {
+//        data = new File("/var/folders/x0/nwq771k10j9661h_wqrzb1pw0000gn/T/junit10260126707730751987");
         final ByteBuffer key = randomKey();
         final ByteBuffer value = randomValue();
         final ByteBuffer value2 = randomValue();
@@ -132,7 +128,24 @@ class PersistenceTest extends TestBase {
         // Reopen
         try (DAO dao = DAOFactory.create(data)) {
             // Last value should win
+            if (!Objects.equals(value2, dao.get(key))) {
+                System.out.println(data.toPath());
+                System.out.print("[");
+                for (var b :
+                        key.array()) {
+                    System.out.printf("%x, ", b);
+                }
+                System.out.println("]");
+                System.out.print("[");
+                for (var b :
+                        value2.array()) {
+                    System.out.printf("%x, ", b);
+                }
+                System.out.println("]");
+                System.exit(1);
+            }
             assertEquals(value2, dao.get(key));
+
         }
     }
 

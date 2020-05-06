@@ -11,6 +11,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class DiskManager {
@@ -20,10 +21,16 @@ public class DiskManager {
     private static final String TABLE_EXTENSION = ".db";
     private static final char MAGICK_NUMBER = 0xabc3;
     private final List<String> fileNames;
+    private static final Logger logger = Logger.getLogger(DiskTable.class.getName());
     private final Random random = new Random(System.currentTimeMillis());
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         Files.createFile(file);
+        try {
+            Thread.sleep(1);
+        } catch (InterruptedException e) {
+            logger.warning("Thread sleep error");
+        }
         try (FileChannel writer = FileChannel.open(file, StandardOpenOption.WRITE)) {
             var shifts = new int[dao.size()];
             shifts[0] = 0;
