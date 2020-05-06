@@ -16,8 +16,10 @@ import java.util.stream.Collectors;
 public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
+    static final String META_PREFIX = "fzxyGZ9LDM";
     private final Path metaFile;
     private final List<String> fileNames;
+    private static final char MAGICK_NUMBER = 0xabc2;
     private final Random random = new Random(System.currentTimeMillis());
 
     private void saveTo(final Table dao, final Path file) throws IOException {
@@ -72,9 +74,26 @@ public class DiskManager {
     }
 
     DiskManager(final Path file) throws IOException {
+        if (Files.exists(file)) {
+            boolean isMetaFile = true;
+            try (var reader = Files.newBufferedReader(file)) {
+                if (reader.read() != MAGICK_NUMBER) {
+                    isMetaFile = false;
+                }
+            } catch (IOException ex) {
+                isMetaFile = false;
+            }
+            if (!isMetaFile) {
+                Files.delete(file);
+            }
+        }
         metaFile = file;
         if (!Files.exists(metaFile)) {
             Files.createFile(metaFile);
+            try (var writer = Files.newBufferedWriter(this.metaFile, Charset.defaultCharset(), StandardOpenOption.APPEND)) {
+                writer.write(MAGICK_NUMBER);
+                writer.write('\n');
+            }
         }
         fileNames = Files.readAllLines(metaFile);
         setSeed();
@@ -82,6 +101,7 @@ public class DiskManager {
 
     List<DiskTable> diskTables() throws IOException {
         return Files.readAllLines(metaFile).stream()
+                .skip(1)
                 .map(Paths::get)
                 .map(DiskTable::of)
                 .collect(Collectors.toList());

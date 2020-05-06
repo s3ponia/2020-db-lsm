@@ -22,7 +22,8 @@ public final class PersistenceDAO implements DAO {
     private static final Logger logger = Logger.getLogger(PersistenceDAO.class.getName());
 
     private PersistenceDAO(final File data) throws IOException {
-        this.manager = new DiskManager(Paths.get(data.getAbsolutePath(), data.getName() + DiskManager.META_EXTENSION));
+        this.manager = new DiskManager(Paths.get(data.getAbsolutePath(),
+                DiskManager.META_PREFIX + data.getName() + DiskManager.META_EXTENSION));
     }
 
     private void flush() throws IOException {
