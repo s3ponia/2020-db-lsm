@@ -85,7 +85,7 @@ public class DiskTable {
         return shifts[index];
     }
 
-    private Table.Cell readCell(final ByteBuffer buff, final int size) {
+    private Table.Cell readCell(final ByteBuffer buff) {
         final var deadFlagTimeStamp = buff.getLong();
         final var keySize = buff.getInt();
         final var key = ByteBuffer.allocate(keySize);
@@ -103,7 +103,7 @@ public class DiskTable {
         final var buff = ByteBuffer.allocate(size);
         channel.read(buff, position);
 
-        return readCell(buff.flip(), size);
+        return readCell(buff.flip());
     }
 
     public DiskTable() {

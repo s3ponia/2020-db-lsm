@@ -60,7 +60,6 @@ public final class PersistenceDAO implements DAO {
         return Iterators.transform(removeDead, c -> Record.of(c.getKey(), c.getValue().getValue()));
     }
 
-
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
         currTable.upsert(key, value);
