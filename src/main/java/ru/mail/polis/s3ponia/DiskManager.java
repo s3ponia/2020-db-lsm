@@ -2,6 +2,7 @@ package ru.mail.polis.s3ponia;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -9,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,8 +20,8 @@ public class DiskManager {
     static final String TABLE_EXTENSION = ".db";
     static final String META_PREFIX = "fzxyGZ9LDM";
     private final Path metaFile;
+    private final char MAGICK_NUMBER = 0xabc3;
     private final List<String> fileNames;
-    private static final char MAGICK_NUMBER = 0xabc2;
     private final Random random = new Random(System.currentTimeMillis());
 
     private void saveTo(final Table dao, final Path file) throws IOException {
@@ -62,6 +64,10 @@ public class DiskManager {
         random.setSeed(fileNames.hashCode());
     }
 
+    private char getMagickNumber() {
+        return MAGICK_NUMBER;
+    }
+
     private String getName() {
         final byte[] randomBytes = new byte[200];
         random.nextBytes(randomBytes);
@@ -77,7 +83,7 @@ public class DiskManager {
         if (Files.exists(file)) {
             boolean isMetaFile = true;
             try (var reader = Files.newBufferedReader(file)) {
-                if (reader.read() != MAGICK_NUMBER) {
+                if (reader.read() != getMagickNumber()) {
                     isMetaFile = false;
                 }
             } catch (IOException ex) {
@@ -90,17 +96,20 @@ public class DiskManager {
         metaFile = file;
         if (!Files.exists(metaFile)) {
             Files.createFile(metaFile);
-            try (var writer = Files.newBufferedWriter(this.metaFile)) {
-                writer.write(MAGICK_NUMBER);
+            try (var writer = Files.newBufferedWriter(metaFile)) {
+                writer.write(getMagickNumber());
                 writer.write('\n');
             }
         }
+
         fileNames = Files.readAllLines(metaFile);
+
         setSeed();
+
     }
 
     List<DiskTable> diskTables() throws IOException {
-        return Files.readAllLines(metaFile).stream()
+        return fileNames.stream()
                 .skip(1)
                 .map(Paths::get)
                 .map(DiskTable::of)
@@ -110,6 +119,7 @@ public class DiskManager {
     void save(final Table dao) throws IOException {
         try (var writer = Files.newBufferedWriter(this.metaFile, Charset.defaultCharset(), StandardOpenOption.APPEND)) {
             final var fileName = getName() + TABLE_EXTENSION;
+            fileNames.add(Paths.get(metaFile.getParent().toString(), fileName).toString());
             writer.write(Paths.get(metaFile.getParent().toString(), fileName) + "\n");
             saveTo(dao, Paths.get(metaFile.getParent().toString(), fileName));
         }
