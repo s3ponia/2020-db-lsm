@@ -99,7 +99,7 @@ public class DiskTable {
 
     private Table.Cell readCell(final long position, final int size) throws IOException {
         final var buff = ByteBuffer.allocate(size);
-        try (final var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
+        try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
             channel.read(buff, position);
         }
 
@@ -113,7 +113,7 @@ public class DiskTable {
 
     DiskTable(final Path path) throws IOException {
         fileChannel = path;
-        try (final var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
+        try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
             final long size = channel.size();
             final var buffSize = ByteBuffer.allocate(Integer.BYTES);
             channel.read(buffSize, size - Integer.BYTES);

@@ -15,7 +15,7 @@ public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
-    private int generation = 0;
+    private int generation;
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         if (!Files.exists(file)) {
