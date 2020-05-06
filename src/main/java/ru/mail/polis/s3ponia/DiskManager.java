@@ -54,7 +54,7 @@ public class DiskManager {
 
     private String getName() {
         ++generation;
-        return Long.toString(generation & ~(1L << (Integer.SIZE - 1L)));
+        return Long.toString(generation);
     }
 
     private void setLastGeneration() throws IOException {
