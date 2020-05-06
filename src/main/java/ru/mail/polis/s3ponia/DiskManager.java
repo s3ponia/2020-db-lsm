@@ -29,7 +29,7 @@ public class DiskManager {
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
-            logger.warning("Thread sleep error");
+            throw new RuntimeException("Thread sleep error");
         }
         try (FileChannel writer = FileChannel.open(file, StandardOpenOption.WRITE)) {
             var shifts = new int[dao.size()];
@@ -76,8 +76,7 @@ public class DiskManager {
     private String getName() {
         final byte[] randomBytes = new byte[200];
         random.nextBytes(randomBytes);
-        final var name = UUID.nameUUIDFromBytes(randomBytes).toString();
-        return name;
+        return UUID.nameUUIDFromBytes(randomBytes).toString();
     }
 
     DiskManager(final Path file) throws IOException {
