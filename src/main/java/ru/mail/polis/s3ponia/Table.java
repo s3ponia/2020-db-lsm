@@ -12,7 +12,9 @@ public class Table {
     private final SortedMap<ByteBuffer, Value> keyToRecord;
 
     public static class Cell implements Comparable<Cell> {
+        @NotNull
         private final ByteBuffer key;
+        @NotNull
         private final Value value;
 
         private Cell(@NotNull final ByteBuffer key, @NotNull final Value value) {

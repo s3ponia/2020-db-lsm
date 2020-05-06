@@ -13,14 +13,11 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.logging.Logger;
 
 public final class PersistenceDAO implements DAO {
     private final Table currTable = new Table();
     private final DiskManager manager;
-    private ByteBuffer cacheLastKey;
-    private ByteBuffer cacheLastValue;
     private static final long MIN_FREE_MEMORY = 128 * 1024 * 1024 / 16;
     private static final Logger logger = Logger.getLogger(PersistenceDAO.class.getName());
 
@@ -63,44 +60,16 @@ public final class PersistenceDAO implements DAO {
         return Iterators.transform(removeDead, c -> Record.of(c.getKey(), c.getValue().getValue()));
     }
 
-    @NotNull
-    @Override
-    public ByteBuffer get(@NotNull final ByteBuffer key) throws IOException {
-        final var key_ = key.rewind().asReadOnlyBuffer();
-        if (cacheLastKey != null && cacheLastKey.equals(key_)) {
-            return cacheLastValue;
-        }
-        final Iterator<Record> iter;
-        iter = iterator(key_);
-        if (!iter.hasNext()) {
-            throw new NoSuchElementException("Not found");
-        }
-
-        final Record next = iter.next();
-        if (next.getKey().equals(key_)) {
-            final var value = next.getValue();
-            cacheLastKey = key_;
-            cacheLastValue = value;
-            return value;
-        } else {
-            throw new NoSuchElementException("Not found");
-        }
-    }
 
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
         currTable.upsert(key, value);
-        cacheLastKey = key;
-        cacheLastValue = value;
         checkToFlush();
     }
 
     @Override
     public void remove(@NotNull final ByteBuffer key) throws IOException {
         currTable.remove(key);
-        if (cacheLastKey != null && cacheLastKey.equals(key)) {
-            cacheLastKey = null;
-        }
         checkToFlush();
     }
 

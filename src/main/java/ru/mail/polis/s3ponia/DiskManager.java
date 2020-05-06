@@ -9,13 +9,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
-    private long generation;
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         if (!Files.exists(file)) {
@@ -53,17 +53,7 @@ public class DiskManager {
     }
 
     private String getName() {
-        ++generation;
-        return Long.toString(generation);
-    }
-
-    private void setLastGeneration() throws IOException {
-        final var lines = Files.readAllLines(metaFile);
-        if (lines.isEmpty()) {
-            return;
-        }
-        final var lastFile = Paths.get(lines.get(lines.size() - 1)).getFileName().toString();
-        generation = Long.parseLong(lastFile.substring(0, lastFile.length() - 3)) + 1L;
+        return UUID.randomUUID().toString();
     }
 
     DiskManager(final Path file) throws IOException {
@@ -71,7 +61,6 @@ public class DiskManager {
         if (!Files.exists(metaFile)) {
             Files.createFile(metaFile);
         }
-        setLastGeneration();
     }
 
     List<DiskTable> diskTables() throws IOException {

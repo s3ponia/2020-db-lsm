@@ -22,7 +22,9 @@ public class DiskTable {
             if (index >= shifts.length - 1) {
                 throw new ArrayIndexOutOfBoundsException("Out of bound");
             }
-            return readCell(getElementShift(index), getElementSize(index));
+            try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
+                return readCell(channel, getElementShift(index), getElementSize(index));
+            }
         }
 
         private int getElementIndex(@NotNull final ByteBuffer key) throws IOException {
@@ -87,21 +89,19 @@ public class DiskTable {
         final var deadFlagTimeStamp = buff.getLong();
         final var keySize = buff.getInt();
         final var key = ByteBuffer.allocate(keySize);
-        buff.limit(buff.position() + key.remaining());
+        buff.limit(buff.position() + keySize);
         key.put(buff);
         buff.limit(buff.capacity());
 
-        final var value = ByteBuffer.allocate(size - keySize - Integer.BYTES - Long.BYTES);
+        final var value = ByteBuffer.allocate(buff.remaining());
         value.put(buff);
 
         return Table.Cell.of(key.flip(), Table.Value.of(value.flip(), deadFlagTimeStamp));
     }
 
-    private Table.Cell readCell(final long position, final int size) throws IOException {
+    private Table.Cell readCell(final FileChannel channel, final long position, final int size) throws IOException {
         final var buff = ByteBuffer.allocate(size);
-        try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
-            channel.read(buff, position);
-        }
+        channel.read(buff, position);
 
         return readCell(buff.flip(), size);
     }
