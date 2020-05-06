@@ -20,6 +20,9 @@ public class DiskManager {
     private final Random random = new Random(System.currentTimeMillis());
 
     private void saveTo(final Table dao, final Path file) throws IOException {
+        if (Files.exists(file)) {
+            Files.delete(file);
+        }
         Files.createFile(file);
         try (FileChannel writer = FileChannel.open(file, StandardOpenOption.WRITE)) {
             var shifts = new int[dao.size()];
@@ -52,6 +55,14 @@ public class DiskManager {
         }
     }
 
+    private void setSeed() throws IOException {
+        final var files = Files.readAllLines(metaFile);
+        if (files.isEmpty()) {
+            return;
+        }
+        random.setSeed(files.hashCode());
+    }
+
     private String getName() {
         final byte[] randomBytes = new byte[200];
         random.nextBytes(randomBytes);
@@ -63,6 +74,7 @@ public class DiskManager {
         if (!Files.exists(metaFile)) {
             Files.createFile(metaFile);
         }
+        setSeed();
     }
 
     List<DiskTable> diskTables() throws IOException {
