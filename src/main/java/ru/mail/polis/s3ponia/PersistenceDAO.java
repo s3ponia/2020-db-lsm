@@ -49,7 +49,7 @@ public final class PersistenceDAO implements DAO {
         final var diskTables = manager.diskTables();
         final var diskIterators = new ArrayList<Iterator<Cell>>();
         diskIterators.add(currTable.iterator(from));
-        diskTables.stream().forEach(diskTable -> {
+        diskTables.forEach(diskTable -> {
             try {
                 diskIterators.add(diskTable.iterator(from));
             } catch (IOException e) {

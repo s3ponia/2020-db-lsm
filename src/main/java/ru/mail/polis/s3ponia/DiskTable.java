@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 public class DiskTable {
     private static final Logger logger = Logger.getLogger(DiskTable.class.getName());
     private final int[] shifts;
-    private final FileChannel fileChannel;
+    private final Path fileChannel;
 
     private class DiskTableIterator implements Iterator<Table.Cell> {
         private int elementIndex;
@@ -99,7 +99,9 @@ public class DiskTable {
 
     private Table.Cell readCell(final long position, final int size) throws IOException {
         final var buff = ByteBuffer.allocate(size);
-        fileChannel.read(buff, position);
+        try (final var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
+            channel.read(buff, position);
+        }
 
         return readCell(buff.flip(), size);
     }
@@ -110,17 +112,19 @@ public class DiskTable {
     }
 
     DiskTable(final Path path) throws IOException {
-        fileChannel = FileChannel.open(path, StandardOpenOption.READ);
-        final long size = fileChannel.size();
-        final var buffSize = ByteBuffer.allocate(Integer.BYTES);
-        fileChannel.read(buffSize, size - Integer.BYTES);
-        final var elementsQuantity = buffSize.flip().getInt();
-        final var arrayShift = (int) size - Integer.BYTES * (elementsQuantity + 1);
-        shifts = new int[elementsQuantity + 1];
-        final var buff = ByteBuffer.allocate(Integer.BYTES * shifts.length);
-        fileChannel.read(buff, arrayShift);
-        buff.flip().asIntBuffer().get(shifts);
-        shifts[elementsQuantity] = arrayShift;
+        fileChannel = path;
+        try (final var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
+            final long size = channel.size();
+            final var buffSize = ByteBuffer.allocate(Integer.BYTES);
+            channel.read(buffSize, size - Integer.BYTES);
+            final var elementsQuantity = buffSize.flip().getInt();
+            final var arrayShift = (int) size - Integer.BYTES * (elementsQuantity + 1);
+            shifts = new int[elementsQuantity + 1];
+            final var buff = ByteBuffer.allocate(Integer.BYTES * shifts.length);
+            channel.read(buff, arrayShift);
+            buff.flip().asIntBuffer().get(shifts);
+            shifts[elementsQuantity] = arrayShift;
+        }
     }
 
     public Iterator<Table.Cell> iterator(@NotNull final ByteBuffer from) throws IOException {

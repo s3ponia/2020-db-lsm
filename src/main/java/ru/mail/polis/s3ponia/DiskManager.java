@@ -9,14 +9,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
-    private int gen = 0;
+    private int generation = 0;
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         if (!Files.exists(file)) {
@@ -54,8 +53,17 @@ public class DiskManager {
     }
 
     private String getName() {
-        ++gen;
-        return Integer.toString(gen & ~(1 << (Integer.SIZE - 1)));
+        ++generation;
+        return Integer.toString(generation & ~(1 << (Integer.SIZE - 1)));
+    }
+
+    private void setLastGeneration() throws IOException {
+        final var lines = Files.readAllLines(metaFile);
+        if (lines.isEmpty()) {
+            return;
+        }
+        final var lastFile = Paths.get(lines.get(lines.size() - 1)).getFileName().toString();
+        generation = Integer.parseInt(lastFile.substring(0, lastFile.length() - 3)) + 1;
     }
 
     DiskManager(final Path file) throws IOException {
@@ -63,10 +71,11 @@ public class DiskManager {
         if (!Files.exists(metaFile)) {
             Files.createFile(metaFile);
         }
+        setLastGeneration();
     }
 
     List<DiskTable> diskTables() throws IOException {
-        return Files.readAllLines(this.metaFile).stream()
+        return Files.readAllLines(metaFile).stream()
                 .map(Paths::get)
                 .map(DiskTable::of)
                 .collect(Collectors.toList());
