@@ -16,7 +16,7 @@ public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
-    private static Random gen = new Random();
+    private int gen = 0;
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         if (!Files.exists(file)) {
@@ -53,8 +53,9 @@ public class DiskManager {
         }
     }
 
-    private static String getName() {
-        return Integer.toString(gen.nextInt() & ~(1 << (Integer.SIZE - 1)));
+    private String getName() {
+        ++gen;
+        return Integer.toString(gen & ~(1 << (Integer.SIZE - 1)));
     }
 
     DiskManager(final Path file) throws IOException {
