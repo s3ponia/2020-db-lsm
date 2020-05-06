@@ -98,8 +98,9 @@ public final class PersistenceDAO implements DAO {
     @Override
     public void remove(@NotNull final ByteBuffer key) throws IOException {
         currTable.remove(key);
-        if(cacheLastKey != null && cacheLastKey.equals(key))
+        if(cacheLastKey != null && cacheLastKey.equals(key)) {
             cacheLastKey = null;
+        }
         checkToFlush();
     }
 
