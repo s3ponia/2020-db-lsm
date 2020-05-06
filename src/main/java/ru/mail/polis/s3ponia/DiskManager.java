@@ -2,7 +2,6 @@ package ru.mail.polis.s3ponia;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -10,17 +9,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class DiskManager {
     static final String META_EXTENSION = ".mdb";
-    static final String TABLE_EXTENSION = ".db";
     static final String META_PREFIX = "fzxyGZ9LDM";
     private final Path metaFile;
-    private final char MAGICK_NUMBER = 0xabc3;
+    private static final String TABLE_EXTENSION = ".db";
+    private static final char MAGICK_NUMBER = 0xabc3;
     private final List<String> fileNames;
     private final Random random = new Random(System.currentTimeMillis());
 
