@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -16,11 +17,10 @@ public class DiskManager {
     static final String META_EXTENSION = ".mdb";
     static final String TABLE_EXTENSION = ".db";
     private final Path metaFile;
+    private final Random random = new Random(System.currentTimeMillis());
 
     private void saveTo(final Table dao, final Path file) throws IOException {
-        if (!Files.exists(file)) {
-            Files.createFile(file);
-        }
+        Files.createFile(file);
         try (FileChannel writer = FileChannel.open(file, StandardOpenOption.WRITE)) {
             var shifts = new int[dao.size()];
             shifts[0] = 0;
@@ -53,7 +53,9 @@ public class DiskManager {
     }
 
     private String getName() {
-        return UUID.randomUUID().toString();
+        byte[] randomBytes = new byte[200];
+        random.nextBytes(randomBytes);
+        return UUID.nameUUIDFromBytes(randomBytes).toString();
     }
 
     DiskManager(final Path file) throws IOException {
