@@ -90,7 +90,7 @@ public class DiskManager {
         metaFile = file;
         if (!Files.exists(metaFile)) {
             Files.createFile(metaFile);
-            try (var writer = Files.newBufferedWriter(this.metaFile, Charset.defaultCharset(), StandardOpenOption.APPEND)) {
+            try (var writer = Files.newBufferedWriter(this.metaFile)) {
                 writer.write(MAGICK_NUMBER);
                 writer.write('\n');
             }
