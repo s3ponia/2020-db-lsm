@@ -9,8 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
-import java.util.Random;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class DiskManager {
@@ -20,7 +18,7 @@ public class DiskManager {
     private static final String TABLE_EXTENSION = ".db";
     private static final char MAGICK_NUMBER = 0xabc3;
     private final List<String> fileNames;
-    private final Random random = new Random(System.currentTimeMillis());
+    private int generation;
 
     private void saveTo(final Table dao, final Path file) throws IOException {
         Files.createFile(file);
@@ -56,10 +54,12 @@ public class DiskManager {
     }
 
     private void setSeed() {
-        if (fileNames.isEmpty()) {
+        if (fileNames.size() <= 1) {
             return;
         }
-        random.setSeed(fileNames.hashCode());
+        final var fileName = Paths.get(fileNames.get(fileNames.size() - 1)).getFileName().toString();
+        final var fileGen = fileName.substring(0, fileName.length() - 3);
+        generation = Integer.parseInt(fileGen);
     }
 
     private char getMagickNumber() {
@@ -67,9 +67,8 @@ public class DiskManager {
     }
 
     private String getName() {
-        final byte[] randomBytes = new byte[200];
-        random.nextBytes(randomBytes);
-        return UUID.nameUUIDFromBytes(randomBytes).toString();
+        ++generation;
+        return Integer.toString(generation);
     }
 
     DiskManager(final Path file) throws IOException {
