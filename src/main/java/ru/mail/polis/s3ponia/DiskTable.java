@@ -18,7 +18,6 @@ public class DiskTable {
     private class DiskTableIterator implements Iterator<Table.Cell> {
         private int elementIndex;
 
-
         private Table.Cell getCell(final int index) throws IOException {
             if (index >= shifts.length - 1) {
                 throw new ArrayIndexOutOfBoundsException("Out of bound");
