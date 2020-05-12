@@ -18,23 +18,14 @@ public class DiskTable {
     private class DiskTableIterator implements Iterator<Table.Cell> {
         private int elementIndex;
 
-        private LazyCell getLazyCell(final int index) throws IOException {
+        private LazyCell getLazyCell(final int index) {
             if (index >= shifts.length - 1) {
                 throw new ArrayIndexOutOfBoundsException("Out of bound");
             }
             return readLazyCell(getElementShift(index), getElementSize(index));
         }
 
-        private Table.Cell getCell(final int index) throws IOException {
-            if (index >= shifts.length - 1) {
-                throw new ArrayIndexOutOfBoundsException("Out of bound");
-            }
-            try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
-                return readCell(channel, getElementShift(index), getElementSize(index));
-            }
-        }
-
-        private int getElementIndex(@NotNull final ByteBuffer key) throws IOException {
+        private int getElementIndex(@NotNull final ByteBuffer key) {
             int left = 0;
             int right = shifts.length - 2;
             while (left <= right) {
@@ -54,7 +45,7 @@ public class DiskTable {
             return left;
         }
 
-        DiskTableIterator(@NotNull final ByteBuffer key) throws IOException {
+        DiskTableIterator(@NotNull final ByteBuffer key) {
             elementIndex = getElementIndex(key);
         }
 
@@ -66,11 +57,7 @@ public class DiskTable {
         @Override
         public LazyCell next() {
             LazyCell result = null;
-            try {
-                result = getLazyCell(elementIndex);
-            } catch (IOException e) {
-                logger.warning(e.toString());
-            }
+            result = getLazyCell(elementIndex);
             ++elementIndex;
             return result;
         }
@@ -80,7 +67,7 @@ public class DiskTable {
         final long position;
         final int size;
 
-        public LazyCell(long position, int size) {
+        public LazyCell(final long position, final int size) {
             super(null, null);
             this.position = position;
             this.size = size;
@@ -155,7 +142,8 @@ public class DiskTable {
         return new LazyCell(position, size);
     }
 
-    private Table.Cell readCell(final FileChannel channel, final long position, final int size) throws IOException {
+    private Table.Cell readCell(final FileChannel channel,
+                                final long position, final int size) throws IOException {
         final var buff = ByteBuffer.allocate(size);
         channel.read(buff, position);
 
@@ -183,7 +171,7 @@ public class DiskTable {
         }
     }
 
-    public Iterator<Table.Cell> iterator(@NotNull final ByteBuffer from) throws IOException {
+    public Iterator<Table.Cell> iterator(@NotNull final ByteBuffer from) {
         return new DiskTableIterator(from);
     }
 

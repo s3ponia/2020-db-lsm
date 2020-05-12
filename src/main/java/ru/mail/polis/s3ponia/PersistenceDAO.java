@@ -19,7 +19,7 @@ public final class PersistenceDAO implements DAO {
     private final DiskManager manager;
     private final Table currTable;
     private final long maxMemory;
-    private long currMemory = 0;
+    private long currMemory;
     private static final long MIN_FREE_MEMORY = 128 * 1024 * 1024 / 32;
     private static final Logger logger = Logger.getLogger(PersistenceDAO.class.getName());
 
@@ -48,17 +48,11 @@ public final class PersistenceDAO implements DAO {
 
     @NotNull
     @Override
-    public Iterator<Record> iterator(@NotNull final ByteBuffer from) throws IOException {
+    public Iterator<Record> iterator(@NotNull final ByteBuffer from) {
         final var diskTables = manager.diskTables();
         final var diskIterators = new ArrayList<Iterator<Cell>>();
         diskIterators.add(currTable.iterator(from));
-        diskTables.forEach(diskTable -> {
-            try {
-                diskIterators.add(diskTable.iterator(from));
-            } catch (IOException e) {
-                logger.warning(e.toString());
-            }
-        });
+        diskTables.forEach(diskTable -> diskIterators.add(diskTable.iterator(from)));
         final var merge = Iterators.mergeSorted(diskIterators, Cell::compareTo);
         final var newest = Iters.collapseEquals(merge, Cell::getKey);
         final var removeDead = Iterators.filter(newest, el -> !el.getValue().isDead());
