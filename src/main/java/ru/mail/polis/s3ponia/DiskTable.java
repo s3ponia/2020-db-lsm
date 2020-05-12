@@ -56,8 +56,7 @@ public class DiskTable {
 
         @Override
         public LazyCell next() {
-            LazyCell result = null;
-            result = getLazyCell(elementIndex);
+            final var result = getLazyCell(elementIndex);
             ++elementIndex;
             return result;
         }
@@ -73,6 +72,7 @@ public class DiskTable {
             this.size = size;
         }
 
+        @Override
         @NotNull
         public ByteBuffer getKey() {
             try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
@@ -88,6 +88,7 @@ public class DiskTable {
             }
         }
 
+        @Override
         @NotNull
         Table.Value getValue() {
             try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
