@@ -131,12 +131,12 @@ public class DiskTable {
     }
 
     /**
-     * DiskTable default constructor
+     * DiskTable default constructor.
      */
-    public DiskTable() {
+    public DiskTable(final int generation) {
         shifts = null;
         fileChannel = null;
-        generation = 0;
+        this.generation = generation;
     }
 
     DiskTable(final Path path) throws IOException {
