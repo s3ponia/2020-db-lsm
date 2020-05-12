@@ -2,6 +2,7 @@ package ru.mail.polis.s3ponia;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -13,12 +14,10 @@ public class Table {
     private final int generation;
 
     public static class Cell implements Comparable<Cell> {
-        @NotNull
         private final ByteBuffer key;
-        @NotNull
         private final Value value;
 
-        private Cell(@NotNull final ByteBuffer key, @NotNull final Value value) {
+        protected Cell(final ByteBuffer key, final Value value) {
             this.key = key;
             this.value = value;
         }
@@ -27,12 +26,10 @@ public class Table {
             return new Cell(key, value);
         }
 
-        @NotNull
         public ByteBuffer getKey() {
             return key.asReadOnlyBuffer();
         }
 
-        @NotNull
         Value getValue() {
             return value;
         }
@@ -153,12 +150,25 @@ public class Table {
         keyToRecord.put(key, value);
     }
 
-    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
-        keyToRecord.put(key, Value.of(value, generation));
+    /**
+     * Upsert transferred value
+     * @param key - key
+     * @param value - value
+     * @return is value was inserted to map
+     */
+    public boolean upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
+        var prev = keyToRecord.put(key, Value.of(value, generation));
+        return prev == null;
     }
 
-    public void remove(@NotNull final ByteBuffer key) {
-        keyToRecord.put(key, Value.of().setDeadFlag());
+    /**
+     * Upsert transferred value
+     * @param key - key
+     * @return is key was inserted to map
+     */
+    public boolean remove(@NotNull final ByteBuffer key) {
+        var prev = keyToRecord.put(key, Value.of().setDeadFlag());
+        return prev == null;
     }
 
     public void close() {

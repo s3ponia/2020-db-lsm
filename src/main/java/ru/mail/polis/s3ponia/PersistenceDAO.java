@@ -18,28 +18,32 @@ import java.util.logging.Logger;
 public final class PersistenceDAO implements DAO {
     private final DiskManager manager;
     private final Table currTable;
-    private static final long MIN_FREE_MEMORY = 128 * 1024 * 1024 / 16;
+    private final long maxMemory;
+    private long currMemory = 0;
+    private static final long MIN_FREE_MEMORY = 128 * 1024 * 1024 / 32;
     private static final Logger logger = Logger.getLogger(PersistenceDAO.class.getName());
 
-    private PersistenceDAO(final File data) throws IOException {
+    private PersistenceDAO(final File data, final long maxMemory) throws IOException {
         this.manager = new DiskManager(Paths.get(data.getAbsolutePath(),
                 DiskManager.META_PREFIX + data.getName() + DiskManager.META_EXTENSION));
         this.currTable = new Table(manager.getGeneration());
+        this.maxMemory = maxMemory;
     }
 
     private void flush() throws IOException {
         manager.save(currTable);
+        currMemory = 0;
         currTable.close();
     }
 
     private void checkToFlush() throws IOException {
-        if (Runtime.getRuntime().freeMemory() < MIN_FREE_MEMORY && currTable.size() > 0) {
+        if (maxMemory - currMemory < MIN_FREE_MEMORY && currTable.size() > 0) {
             flush();
         }
     }
 
-    public static PersistenceDAO of(final File data) throws IOException {
-        return new PersistenceDAO(data);
+    public static PersistenceDAO of(final File data, final long memorySize) throws IOException {
+        return new PersistenceDAO(data, memorySize);
     }
 
     @NotNull
@@ -64,14 +68,26 @@ public final class PersistenceDAO implements DAO {
 
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
-        currTable.upsert(key, value);
+        currMemory += key.limit() + value.limit() + Long.BYTES;
         checkToFlush();
+        if (currMemory != 0) {
+            currMemory -= key.limit() + value.limit() + Long.BYTES;
+        }
+        if (currTable.upsert(key, value)) {
+            currMemory += key.limit() + value.limit() + Long.BYTES;
+        }
     }
 
     @Override
     public void remove(@NotNull final ByteBuffer key) throws IOException {
-        currTable.remove(key);
+        currMemory += key.limit();
         checkToFlush();
+        if (currMemory != 0) {
+            currMemory -= key.limit();
+        }
+        if (currTable.remove(key)) {
+            currMemory += key.limit();
+        }
     }
 
     @Override

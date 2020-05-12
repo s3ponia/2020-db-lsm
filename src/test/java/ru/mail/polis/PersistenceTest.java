@@ -111,7 +111,6 @@ class PersistenceTest extends TestBase {
 
     @RepeatedTest(1000)
     void replaceWithClose(@TempDir File data) throws Exception {
-//        data = new File("/var/folders/x0/nwq771k10j9661h_wqrzb1pw0000gn/T/junit10260126707730751987");
         final ByteBuffer key = randomKey();
         final ByteBuffer value = randomValue();
         final ByteBuffer value2 = randomValue();

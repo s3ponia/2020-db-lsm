@@ -18,6 +18,13 @@ public class DiskTable {
     private class DiskTableIterator implements Iterator<Table.Cell> {
         private int elementIndex;
 
+        private LazyCell getLazyCell(final int index) throws IOException {
+            if (index >= shifts.length - 1) {
+                throw new ArrayIndexOutOfBoundsException("Out of bound");
+            }
+            return readLazyCell(getElementShift(index), getElementSize(index));
+        }
+
         private Table.Cell getCell(final int index) throws IOException {
             if (index >= shifts.length - 1) {
                 throw new ArrayIndexOutOfBoundsException("Out of bound");
@@ -32,7 +39,7 @@ public class DiskTable {
             int right = shifts.length - 2;
             while (left <= right) {
                 final int mid = (left + right) / 2;
-                final ByteBuffer midKey = getCell(mid).getKey();
+                final ByteBuffer midKey = getLazyCell(mid).getKey();
                 final int compareResult = midKey.compareTo(key);
 
                 if (compareResult < 0) {
@@ -57,15 +64,60 @@ public class DiskTable {
         }
 
         @Override
-        public Table.Cell next() {
-            Table.Cell result = null;
+        public LazyCell next() {
+            LazyCell result = null;
             try {
-                result = getCell(elementIndex);
+                result = getLazyCell(elementIndex);
             } catch (IOException e) {
                 logger.warning(e.toString());
             }
             ++elementIndex;
             return result;
+        }
+    }
+
+    private class LazyCell extends Table.Cell {
+        final long position;
+        final int size;
+
+        public LazyCell(long position, int size) {
+            super(null, null);
+            this.position = position;
+            this.size = size;
+        }
+
+        @NotNull
+        public ByteBuffer getKey() {
+            try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
+                final var buffer = ByteBuffer.allocate(Integer.BYTES);
+                channel.read(buffer, position + Long.BYTES);
+                final var keySize = buffer.flip().getInt();
+                final var key = ByteBuffer.allocate(keySize);
+                channel.read(key, position + Long.BYTES + Integer.BYTES);
+                return key.flip();
+            } catch (IOException e) {
+                logger.warning(e.toString());
+                return ByteBuffer.allocate(0);
+            }
+        }
+
+        @NotNull
+        Table.Value getValue() {
+            try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
+                final var valueSizeBuf = ByteBuffer.allocate(Long.BYTES);
+                channel.read(valueSizeBuf, position);
+                final var deadFlagTimeStamp = valueSizeBuf.flip().getLong();
+                final var buffer = ByteBuffer.allocate(Integer.BYTES);
+                channel.read(buffer, position + Long.BYTES);
+                final var keySize = buffer.flip().getInt();
+                final var value = ByteBuffer.allocate(size - Integer.BYTES - Long.BYTES - keySize);
+                channel.read(value, position + Long.BYTES + Integer.BYTES + keySize);
+
+                return Table.Value.of(value.flip(), deadFlagTimeStamp);
+            } catch (IOException e) {
+                logger.warning(e.toString());
+                return Table.Value.of(ByteBuffer.allocate(0));
+            }
         }
     }
 
@@ -97,6 +149,10 @@ public class DiskTable {
         value.put(buff);
 
         return Table.Cell.of(key.flip(), Table.Value.of(value.flip(), deadFlagTimeStamp));
+    }
+
+    private LazyCell readLazyCell(final long position, final int size) {
+        return new LazyCell(position, size);
     }
 
     private Table.Cell readCell(final FileChannel channel, final long position, final int size) throws IOException {
