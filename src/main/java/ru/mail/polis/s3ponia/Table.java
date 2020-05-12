@@ -53,9 +53,10 @@ public class Table {
 
         /**
          * Value constructor.
-         * @param value - byte buffer value
+         *
+         * @param value             - byte buffer value
          * @param deadFlagTimeStamp - timestamp+dead flag
-         * @param generation - table generation
+         * @param generation        - table generation
          */
         public Value(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
             this.byteBuffer = value;
@@ -109,9 +110,14 @@ public class Table {
             return deadFlagTimeStamp & ~DEAD_FLAG;
         }
 
+        public long getGeneration() {
+            return generation;
+        }
+
         @Override
         public int compareTo(@NotNull final Value o) {
-            return Comparator.comparing(Value::getTimeStamp).reversed().compare(this, o);
+            return Comparator.comparing(Value::getTimeStamp)
+                    .thenComparing(Value::getGeneration).reversed().compare(this, o);
         }
     }
 

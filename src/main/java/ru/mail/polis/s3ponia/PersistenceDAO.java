@@ -60,25 +60,25 @@ public final class PersistenceDAO implements DAO {
 
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
-        currMemory += key.limit() + value.limit() + Long.BYTES;
+        currMemory += key.limit() + value.limit() + Long.BYTES + Integer.BYTES;
         checkToFlush();
         if (currMemory != 0) {
-            currMemory -= key.limit() + value.limit() + Long.BYTES;
+            currMemory -= key.limit() + value.limit() + Long.BYTES + Integer.BYTES;
         }
         if (currTable.upsert(key, value)) {
-            currMemory += key.limit() + value.limit() + Long.BYTES;
+            currMemory += key.limit() + value.limit() + Long.BYTES + Integer.BYTES;
         }
     }
 
     @Override
     public void remove(@NotNull final ByteBuffer key) throws IOException {
-        currMemory += key.limit();
+        currMemory += key.limit() + Long.BYTES + Integer.BYTES;
         checkToFlush();
         if (currMemory != 0) {
-            currMemory -= key.limit();
+            currMemory -= key.limit() + Long.BYTES + Integer.BYTES;
         }
         if (currTable.remove(key)) {
-            currMemory += key.limit();
+            currMemory += key.limit() + Long.BYTES + Integer.BYTES;
         }
     }
 
