@@ -67,6 +67,9 @@ public class DiskTable {
     private class LazyCell implements Table.ICell {
         final long position;
         final int size;
+        final static int CACHE_SIZE = 100;
+        ByteBuffer keyCache;
+        Table.Value valueCache;
 
         public LazyCell(final long position, final int size) {
             this.position = position;
@@ -76,12 +79,19 @@ public class DiskTable {
         @Override
         @NotNull
         public ByteBuffer getKey() {
+            if (keyCache != null) {
+                return keyCache;
+            }
             try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
                 final var buffer = ByteBuffer.allocate(Integer.BYTES);
                 channel.read(buffer, position + Long.BYTES);
                 final var keySize = buffer.flip().getInt();
                 final var key = ByteBuffer.allocate(keySize);
                 channel.read(key, position + Long.BYTES + Integer.BYTES);
+                if (keySize < CACHE_SIZE) {
+                    keyCache = key.flip();
+                    return keyCache;
+                }
                 return key.flip();
             } catch (IOException e) {
                 logger.warning(e.toString());
@@ -92,6 +102,9 @@ public class DiskTable {
         @Override
         @NotNull
         public Table.Value getValue() {
+            if (valueCache != null) {
+                return valueCache;
+            }
             try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
                 final var valueSizeBuf = ByteBuffer.allocate(Long.BYTES);
                 channel.read(valueSizeBuf, position);
@@ -99,10 +112,14 @@ public class DiskTable {
                 final var buffer = ByteBuffer.allocate(Integer.BYTES);
                 channel.read(buffer, position + Long.BYTES);
                 final var keySize = buffer.flip().getInt();
-                final var value = ByteBuffer.allocate(size - Integer.BYTES - Long.BYTES - keySize);
-                channel.read(value, position + Long.BYTES + Integer.BYTES + keySize);
+                final var valueBuf = ByteBuffer.allocate(size - Integer.BYTES - Long.BYTES - keySize);
+                channel.read(valueBuf, position + Long.BYTES + Integer.BYTES + keySize);
 
-                return Table.Value.of(value.flip(), deadFlagTimeStamp, generation);
+                final var value = Table.Value.of(valueBuf.flip(), deadFlagTimeStamp, generation);
+                if (valueBuf.limit() < CACHE_SIZE) {
+                    valueCache = value;
+                }
+                return value;
             } catch (IOException e) {
                 logger.warning(e.toString());
                 return Table.Value.of(ByteBuffer.allocate(0), -1);
