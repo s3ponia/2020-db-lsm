@@ -124,30 +124,8 @@ public class DiskTable {
         return shifts[index];
     }
 
-    private Table.Cell readCell(final ByteBuffer buff) {
-        final var deadFlagTimeStamp = buff.getLong();
-        final var keySize = buff.getInt();
-        final var key = ByteBuffer.allocate(keySize);
-        buff.limit(buff.position() + keySize);
-        key.put(buff);
-        buff.limit(buff.capacity());
-
-        final var value = ByteBuffer.allocate(buff.remaining());
-        value.put(buff);
-
-        return Table.Cell.of(key.flip(), Table.Value.of(value.flip(), deadFlagTimeStamp));
-    }
-
     private LazyCell readLazyCell(final long position, final int size) {
         return new LazyCell(position, size);
-    }
-
-    private Table.Cell readCell(final FileChannel channel,
-                                final long position, final int size) throws IOException {
-        final var buff = ByteBuffer.allocate(size);
-        channel.read(buff, position);
-
-        return readCell(buff.flip());
     }
 
     public DiskTable() {

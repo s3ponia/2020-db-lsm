@@ -150,7 +150,7 @@ public class Table {
     }
 
     public boolean upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
-        var prev = keyToRecord.put(key, Value.of(value, generation));
+        final var prev = keyToRecord.put(key, Value.of(value, generation));
         return prev == null;
     }
 

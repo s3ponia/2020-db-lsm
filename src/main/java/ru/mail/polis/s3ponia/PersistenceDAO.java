@@ -13,7 +13,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.logging.Logger;
 
 public final class PersistenceDAO implements DAO {
     private final DiskManager manager;
@@ -21,7 +20,6 @@ public final class PersistenceDAO implements DAO {
     private final long maxMemory;
     private long currMemory;
     private static final long MIN_FREE_MEMORY = 128 * 1024 * 1024 / 32;
-    private static final Logger logger = Logger.getLogger(PersistenceDAO.class.getName());
 
     private PersistenceDAO(final File data, final long maxMemory) throws IOException {
         this.manager = new DiskManager(Paths.get(data.getAbsolutePath(),
