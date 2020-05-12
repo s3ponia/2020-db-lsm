@@ -67,7 +67,7 @@ public class DiskTable {
     private class LazyCell implements Table.ICell {
         final long position;
         final int size;
-        final static int CACHE_SIZE = 100;
+        static final int CACHE_SIZE = 100;
         ByteBuffer keyCache;
         Table.Value valueCache;
 
