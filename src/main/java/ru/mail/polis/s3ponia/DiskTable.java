@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 public class DiskTable {
     private static final Logger logger = Logger.getLogger(DiskTable.class.getName());
     private final int[] shifts;
+    private final int generation;
     private final Path fileChannel;
 
     private class DiskTableIterator implements Iterator<Table.Cell> {
@@ -101,10 +102,10 @@ public class DiskTable {
                 final var value = ByteBuffer.allocate(size - Integer.BYTES - Long.BYTES - keySize);
                 channel.read(value, position + Long.BYTES + Integer.BYTES + keySize);
 
-                return Table.Value.of(value.flip(), deadFlagTimeStamp);
+                return Table.Value.of(value.flip(), deadFlagTimeStamp, generation);
             } catch (IOException e) {
                 logger.warning(e.toString());
-                return Table.Value.of(ByteBuffer.allocate(0));
+                return Table.Value.of(ByteBuffer.allocate(0), -1);
             }
         }
     }
@@ -132,10 +133,13 @@ public class DiskTable {
     public DiskTable() {
         shifts = null;
         fileChannel = null;
+        generation = 0;
     }
 
     DiskTable(final Path path) throws IOException {
         fileChannel = path;
+        final var fileName = fileChannel.getFileName().toString();
+        generation = Integer.parseInt(fileName.substring(0,fileName.length() - 3));
         try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
             final long size = channel.size();
             final var buffSize = ByteBuffer.allocate(Integer.BYTES);

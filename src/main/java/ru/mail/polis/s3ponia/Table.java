@@ -64,26 +64,16 @@ public class Table {
             this.generation = generation;
         }
 
-        private Value(final ByteBuffer value) {
-            this.deadFlagTimeStamp = System.currentTimeMillis();
-            this.byteBuffer = value;
-            this.generation = 0;
-        }
-
         static Value of() {
             return new Value();
         }
 
-        static Value of(final ByteBuffer value) {
-            return new Value(value);
-        }
-
-        static Value of(final ByteBuffer value, final long deadFlagTimeStamp) {
-            return new Value(value, deadFlagTimeStamp, 0);
-        }
-
         static Value of(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
             return new Value(value, deadFlagTimeStamp, generation);
+        }
+
+        static Value of(final ByteBuffer value, final int generation) {
+            return new Value(value, System.currentTimeMillis(), generation);
         }
 
         ByteBuffer getValue() {
@@ -91,11 +81,13 @@ public class Table {
         }
 
         Value setDeadFlag() {
-            return Value.of(byteBuffer, deadFlagTimeStamp | DEAD_FLAG);
+            return Value.of(byteBuffer,
+                    deadFlagTimeStamp | DEAD_FLAG, generation);
         }
 
         Value unsetDeadFlag() {
-            return Value.of(byteBuffer, deadFlagTimeStamp & ~DEAD_FLAG);
+            return Value.of(byteBuffer,
+                    deadFlagTimeStamp & ~DEAD_FLAG, generation);
         }
 
         boolean isDead() {
@@ -116,7 +108,8 @@ public class Table {
 
         @Override
         public int compareTo(@NotNull final Value o) {
-            return Comparator.comparing(Value::getGeneration)
+            return Comparator.comparing(Value::getTimeStamp)
+                    .thenComparing(Value::getGeneration)
                     .reversed().compare(this, o);
         }
     }
