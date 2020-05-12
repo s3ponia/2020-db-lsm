@@ -110,7 +110,7 @@ public class DiskTable {
         }
 
         @Override
-        public int compareTo(@NotNull Table.ICell o) {
+        public int compareTo(@NotNull final Table.ICell o) {
             return Comparator.comparing(Table.ICell::getKey).thenComparing(Table.ICell::getValue).compare(this, o);
         }
     }
