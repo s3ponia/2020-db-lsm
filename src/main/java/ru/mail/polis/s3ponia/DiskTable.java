@@ -164,7 +164,7 @@ public class DiskTable {
     DiskTable(final Path path) throws IOException {
         fileChannel = path;
         final var fileName = fileChannel.getFileName().toString();
-        generation = Integer.parseInt(fileName.substring(0, fileName.length() - 3));
+        generation = Integer.parseInt(fileName.substring(0, fileName.length() - 3)) - 1;
         try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
             final long size = channel.size();
             final var buffSize = ByteBuffer.allocate(Integer.BYTES);

@@ -59,12 +59,6 @@ public class Table {
         private final long deadFlagTimeStamp;
         private final int generation;
 
-        private Value() {
-            this.deadFlagTimeStamp = System.currentTimeMillis();
-            this.byteBuffer = ByteBuffer.allocate(0);
-            this.generation = 0;
-        }
-
         /**
          * Value constructor.
          *
@@ -84,16 +78,12 @@ public class Table {
             this.generation = 0;
         }
 
-        static Value of() {
-            return new Value();
+        static Value dead(final int generation) {
+            return new Value(ByteBuffer.allocate(0), System.currentTimeMillis(), generation).setDeadFlag();
         }
 
-        static Value of(final ByteBuffer value) {
-            return new Value(value);
-        }
-
-        static Value of(final ByteBuffer value, final long deadFlagTimeStamp) {
-            return new Value(value, deadFlagTimeStamp, 0);
+        static Value of(final ByteBuffer value, final int generation) {
+            return new Value(value, System.currentTimeMillis(), generation);
         }
 
         static Value of(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
@@ -105,11 +95,11 @@ public class Table {
         }
 
         Value setDeadFlag() {
-            return Value.of(byteBuffer, deadFlagTimeStamp | DEAD_FLAG);
+            return Value.of(byteBuffer, deadFlagTimeStamp | DEAD_FLAG, generation);
         }
 
         Value unsetDeadFlag() {
-            return Value.of(byteBuffer, deadFlagTimeStamp & ~DEAD_FLAG);
+            return Value.of(byteBuffer, deadFlagTimeStamp & ~DEAD_FLAG, generation);
         }
 
         boolean isDead() {
@@ -130,8 +120,7 @@ public class Table {
 
         @Override
         public int compareTo(@NotNull final Value o) {
-            return Comparator.comparing(Value::getTimeStamp)
-                    .thenComparing(Value::getGeneration).reversed().compare(this, o);
+            return Comparator.comparing(Value::getGeneration).reversed().compare(this, o);
         }
     }
 
@@ -170,7 +159,7 @@ public class Table {
     }
 
     public void remove(@NotNull final ByteBuffer key) {
-        keyToRecord.put(key, Value.of().setDeadFlag());
+        keyToRecord.put(key, Value.dead(generation));
     }
 
     public void close() {

@@ -122,6 +122,6 @@ public class DiskManager {
     }
 
     int getGeneration() {
-        return fileNames.size();
+        return generation;
     }
 }
