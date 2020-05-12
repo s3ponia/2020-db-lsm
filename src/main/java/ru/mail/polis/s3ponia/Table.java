@@ -116,8 +116,8 @@ public class Table {
 
         @Override
         public int compareTo(@NotNull final Value o) {
-            return Comparator.comparing(Value::getTimeStamp)
-                    .thenComparing(Value::getGeneration).reversed().compare(this, o);
+            return Comparator.comparing(Value::getGeneration)
+                    .reversed().compare(this, o);
         }
     }
 
