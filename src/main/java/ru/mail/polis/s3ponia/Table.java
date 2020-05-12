@@ -72,12 +72,6 @@ public class Table {
             this.generation = generation;
         }
 
-        private Value(final ByteBuffer value) {
-            this.deadFlagTimeStamp = System.currentTimeMillis();
-            this.byteBuffer = value;
-            this.generation = 0;
-        }
-
         static Value dead(final int generation) {
             return new Value(ByteBuffer.allocate(0), System.currentTimeMillis(), generation).setDeadFlag();
         }
