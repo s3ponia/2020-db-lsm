@@ -130,6 +130,9 @@ public class DiskTable {
         return new LazyCell(position, size);
     }
 
+    /**
+     * DiskTable default constructor
+     */
     public DiskTable() {
         shifts = null;
         fileChannel = null;
