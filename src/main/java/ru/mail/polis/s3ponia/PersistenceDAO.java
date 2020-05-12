@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import ru.mail.polis.DAO;
 import ru.mail.polis.Iters;
 import ru.mail.polis.Record;
-import ru.mail.polis.s3ponia.Table.Cell;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,11 +47,13 @@ public final class PersistenceDAO implements DAO {
     @Override
     public Iterator<Record> iterator(@NotNull final ByteBuffer from) {
         final var diskTables = manager.diskTables();
-        final var diskIterators = new ArrayList<Iterator<Cell>>();
+        final var diskIterators = new ArrayList<Iterator<Table.ICell>>();
         diskIterators.add(currTable.iterator(from));
-        diskTables.forEach(diskTable -> diskIterators.add(diskTable.iterator(from)));
-        final var merge = Iterators.mergeSorted(diskIterators, Cell::compareTo);
-        final var newest = Iters.collapseEquals(merge, Cell::getKey);
+        diskTables.forEach(diskTable -> {
+            diskIterators.add(diskTable.iterator(from));
+        });
+        final var merge = Iterators.mergeSorted(diskIterators, Table.ICell::compareTo);
+        final var newest = Iters.collapseEquals(merge, Table.ICell::getKey);
         final var removeDead = Iterators.filter(newest, el -> !el.getValue().isDead());
 
         return Iterators.transform(removeDead, c -> Record.of(c.getKey(), c.getValue().getValue()));
@@ -65,9 +66,9 @@ public final class PersistenceDAO implements DAO {
         if (currMemory != 0) {
             currMemory -= key.limit() + value.limit() + Long.BYTES + Integer.BYTES;
         }
-        if (currTable.upsert(key, value)) {
-            currMemory += key.limit() + value.limit() + Long.BYTES + Integer.BYTES;
-        }
+        currTable.upsert(key, value);
+        currMemory += key.limit() + value.limit() + Long.BYTES + Integer.BYTES;
+
     }
 
     @Override
@@ -77,9 +78,8 @@ public final class PersistenceDAO implements DAO {
         if (currMemory != 0) {
             currMemory -= key.limit() + Long.BYTES + Integer.BYTES;
         }
-        if (currTable.remove(key)) {
-            currMemory += key.limit() + Long.BYTES + Integer.BYTES;
-        }
+        currTable.remove(key);
+        currMemory += key.limit() + Long.BYTES + Integer.BYTES;
     }
 
     @Override

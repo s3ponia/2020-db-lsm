@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.logging.Logger;
 
@@ -16,7 +17,7 @@ public class DiskTable {
     private final int generation;
     private final Path fileChannel;
 
-    private class DiskTableIterator implements Iterator<Table.Cell> {
+    private class DiskTableIterator implements Iterator<Table.ICell> {
         private int elementIndex;
 
         private LazyCell getLazyCell(final int index) {
@@ -63,12 +64,11 @@ public class DiskTable {
         }
     }
 
-    private class LazyCell extends Table.Cell {
+    private class LazyCell implements Table.ICell {
         final long position;
         final int size;
 
         public LazyCell(final long position, final int size) {
-            super(null, null);
             this.position = position;
             this.size = size;
         }
@@ -91,7 +91,7 @@ public class DiskTable {
 
         @Override
         @NotNull
-        Table.Value getValue() {
+        public Table.Value getValue() {
             try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
                 final var valueSizeBuf = ByteBuffer.allocate(Long.BYTES);
                 channel.read(valueSizeBuf, position);
@@ -107,6 +107,11 @@ public class DiskTable {
                 logger.warning(e.toString());
                 return Table.Value.of(ByteBuffer.allocate(0), -1);
             }
+        }
+
+        @Override
+        public int compareTo(@NotNull Table.ICell o) {
+            return Comparator.comparing(Table.ICell::getKey).thenComparing(Table.ICell::getValue).compare(this, o);
         }
     }
 
@@ -142,7 +147,7 @@ public class DiskTable {
     DiskTable(final Path path) throws IOException {
         fileChannel = path;
         final var fileName = fileChannel.getFileName().toString();
-        generation = Integer.parseInt(fileName.substring(0,fileName.length() - 3));
+        generation = Integer.parseInt(fileName.substring(0, fileName.length() - 3));
         try (var channel = FileChannel.open(fileChannel, StandardOpenOption.READ)) {
             final long size = channel.size();
             final var buffSize = ByteBuffer.allocate(Integer.BYTES);
@@ -157,7 +162,7 @@ public class DiskTable {
         }
     }
 
-    public Iterator<Table.Cell> iterator(@NotNull final ByteBuffer from) {
+    public Iterator<Table.ICell> iterator(@NotNull final ByteBuffer from) {
         return new DiskTableIterator(from);
     }
 

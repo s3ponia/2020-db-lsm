@@ -12,11 +12,21 @@ public class Table {
     private final SortedMap<ByteBuffer, Value> keyToRecord;
     private final int generation;
 
-    public static class Cell implements Comparable<Cell> {
+    public interface ICell extends Comparable<ICell> {
+        @NotNull
+        ByteBuffer getKey();
+
+        @NotNull
+        Value getValue();
+    }
+
+    public static class Cell implements ICell {
+        @NotNull
         private final ByteBuffer key;
+        @NotNull
         private final Value value;
 
-        protected Cell(final ByteBuffer key, final Value value) {
+        protected Cell(@NotNull final ByteBuffer key, @NotNull final Value value) {
             this.key = key;
             this.value = value;
         }
@@ -25,17 +35,21 @@ public class Table {
             return new Cell(key, value);
         }
 
+        @Override
+        @NotNull
         public ByteBuffer getKey() {
             return key.asReadOnlyBuffer();
         }
 
-        Value getValue() {
+        @Override
+        @NotNull
+        public Value getValue() {
             return value;
         }
 
         @Override
-        public int compareTo(@NotNull final Cell o) {
-            return Comparator.comparing(Cell::getKey).thenComparing(Cell::getValue).compare(this, o);
+        public int compareTo(@NotNull final ICell o) {
+            return Comparator.comparing(ICell::getKey).thenComparing(ICell::getValue).compare(this, o);
         }
     }
 
@@ -64,16 +78,26 @@ public class Table {
             this.generation = generation;
         }
 
+        private Value(final ByteBuffer value) {
+            this.deadFlagTimeStamp = System.currentTimeMillis();
+            this.byteBuffer = value;
+            this.generation = 0;
+        }
+
         static Value of() {
             return new Value();
         }
 
-        static Value of(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
-            return new Value(value, deadFlagTimeStamp, generation);
+        static Value of(final ByteBuffer value) {
+            return new Value(value);
         }
 
-        static Value of(final ByteBuffer value, final int generation) {
-            return new Value(value, System.currentTimeMillis(), generation);
+        static Value of(final ByteBuffer value, final long deadFlagTimeStamp) {
+            return new Value(value, deadFlagTimeStamp, 0);
+        }
+
+        static Value of(final ByteBuffer value, final long deadFlagTimeStamp, final int generation) {
+            return new Value(value, deadFlagTimeStamp, generation);
         }
 
         ByteBuffer getValue() {
@@ -81,13 +105,11 @@ public class Table {
         }
 
         Value setDeadFlag() {
-            return Value.of(byteBuffer,
-                    deadFlagTimeStamp | DEAD_FLAG, generation);
+            return Value.of(byteBuffer, deadFlagTimeStamp | DEAD_FLAG);
         }
 
         Value unsetDeadFlag() {
-            return Value.of(byteBuffer,
-                    deadFlagTimeStamp & ~DEAD_FLAG, generation);
+            return Value.of(byteBuffer, deadFlagTimeStamp & ~DEAD_FLAG);
         }
 
         boolean isDead() {
@@ -102,15 +124,14 @@ public class Table {
             return deadFlagTimeStamp & ~DEAD_FLAG;
         }
 
-        public long getGeneration() {
+        public int getGeneration() {
             return generation;
         }
 
         @Override
         public int compareTo(@NotNull final Value o) {
             return Comparator.comparing(Value::getTimeStamp)
-                    .thenComparing(Value::getGeneration)
-                    .reversed().compare(this, o);
+                    .thenComparing(Value::getGeneration).reversed().compare(this, o);
         }
     }
 
@@ -129,14 +150,14 @@ public class Table {
 
     /**
      * Provides iterator (possibly empty) over {@link Cell}s starting at "from" key (inclusive)
-     * in <b>ascending</b> order according to {@link Cell#compareTo(Cell)}.
+     * in <b>ascending</b> order according to {@link Cell#compareTo(ICell)}.
      * N.B. The iterator should be obtained as fast as possible, e.g.
      * one should not "seek" to start point ("from" element) in linear time ;)
      */
-    public Iterator<Cell> iterator(@NotNull final ByteBuffer from) {
+    public Iterator<ICell> iterator(@NotNull final ByteBuffer from) {
         return keyToRecord.tailMap(from).entrySet().stream().map(
                 e -> Cell.of(e.getKey(), e.getValue())
-        ).iterator();
+        ).map(c -> (ICell) c).iterator();
     }
 
     public ByteBuffer get(@NotNull final ByteBuffer key) {
@@ -144,18 +165,12 @@ public class Table {
         return val == null ? null : val.getValue();
     }
 
-    public void upsert(@NotNull final ByteBuffer key, @NotNull final Value value) {
-        keyToRecord.put(key, value);
+    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
+        keyToRecord.put(key, Value.of(value, generation));
     }
 
-    public boolean upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
-        final var prev = keyToRecord.put(key, Value.of(value, generation));
-        return prev == null;
-    }
-
-    public boolean remove(@NotNull final ByteBuffer key) {
-        final var prev = keyToRecord.put(key, Value.of().setDeadFlag());
-        return prev == null;
+    public void remove(@NotNull final ByteBuffer key) {
+        keyToRecord.put(key, Value.of().setDeadFlag());
     }
 
     public void close() {
