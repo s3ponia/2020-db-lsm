@@ -91,12 +91,12 @@ public final class PersistenceDAO implements DAO {
     public void compact() throws IOException {
         close();
         final var it = iterator(ByteBuffer.allocate(0));
+        final var diskTables = manager.diskTables();
+        manager.clear();
         while (it.hasNext()) {
             final var record = it.next();
             upsert(record.getKey(), record.getValue());
         }
-        final var diskTables = manager.diskTables();
-        manager.clear();
         for (final var disk : diskTables) {
             disk.erase();
         }
