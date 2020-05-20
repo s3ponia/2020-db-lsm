@@ -45,7 +45,7 @@ public final class PersistenceDAO implements DAO {
 
     /**
      * Return iterator over all existing records
-     * @return Iterator<Record> over all records
+     * @return Iterator over all records
      */
     @NotNull
     public Iterator<Record> iterator() {
