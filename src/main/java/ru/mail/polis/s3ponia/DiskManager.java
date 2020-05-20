@@ -17,7 +17,7 @@ public class DiskManager {
     private final Path metaFile;
     private static final String TABLE_EXTENSION = ".db";
     private static final char MAGICK_NUMBER = 0xabc3;
-    private final List<String> fileNames;
+    private List<String> fileNames;
     private int generation;
 
     private void saveTo(final Table dao, final Path file) throws IOException {
