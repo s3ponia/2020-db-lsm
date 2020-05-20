@@ -110,7 +110,7 @@ public class DiskManager {
 
     void clear() {
         fileNames.clear();
-        Files.delete(file);
+        Files.delete(metaFile);
         Files.createFile(metaFile);
         try (var writer = Files.newBufferedWriter(metaFile)) {
             writer.write(getMagickNumber());
