@@ -109,13 +109,14 @@ public class DiskManager {
     }
 
     void clear() throws IOException {
-        fileNames.clear();
         Files.delete(metaFile);
         Files.createFile(metaFile);
         try (var writer = Files.newBufferedWriter(metaFile)) {
             writer.write(getMagickNumber());
             writer.write('\n');
         }
+        generation = 0;
+        fileNames = Files.readAllLines(metaFile);
     }
 
     void save(final Table dao) throws IOException {
