@@ -127,8 +127,9 @@ public class Table {
         return keyToRecord.size();
     }
 
-    public Iterator<Cell> iterator() {
-        return keyToRecord.entrySet().stream().map(e -> Cell.of(e.getKey(), e.getValue())).iterator();
+    public Iterator<ICell> iterator() {
+        return keyToRecord.entrySet().stream().map(e -> Cell.of(e.getKey(), e.getValue()))
+                .map(c -> (ICell) c).iterator();
     }
 
     /**
