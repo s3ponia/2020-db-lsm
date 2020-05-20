@@ -108,7 +108,7 @@ public class DiskManager {
                 .collect(Collectors.toList());
     }
 
-    void clear() {
+    void clear() throws IOException {
         fileNames.clear();
         Files.delete(metaFile);
         Files.createFile(metaFile);
