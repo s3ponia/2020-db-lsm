@@ -191,4 +191,8 @@ public class DiskTable {
             return new DiskTable();
         }
     }
+
+    public void erase() throws IOException {
+        Files.delete(fileChannel);
+    }
 }

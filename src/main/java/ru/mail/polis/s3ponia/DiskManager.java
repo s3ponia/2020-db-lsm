@@ -108,6 +108,31 @@ public class DiskManager {
                 .collect(Collectors.toList());
     }
 
+    void clear() {
+        fileNames.clear();
+        if (Files.exists(file)) {
+            boolean isMetaFile = true;
+            try (var reader = Files.newBufferedReader(file)) {
+                if (reader.read() != getMagickNumber()) {
+                    isMetaFile = false;
+                }
+            } catch (IOException ex) {
+                isMetaFile = false;
+            }
+            if (!isMetaFile) {
+                Files.delete(file);
+            }
+        }
+        metaFile = file;
+        if (!Files.exists(metaFile)) {
+            Files.createFile(metaFile);
+            try (var writer = Files.newBufferedWriter(metaFile)) {
+                writer.write(getMagickNumber());
+                writer.write('\n');
+            }
+        }
+    }
+
     void save(final Table dao) throws IOException {
         try (var writer = Files.newBufferedWriter(this.metaFile, Charset.defaultCharset(), StandardOpenOption.APPEND)) {
             var filePath = Paths.get(metaFile.getParent().toString(), getName() + TABLE_EXTENSION);

@@ -86,4 +86,19 @@ public final class PersistenceDAO implements DAO {
             flush();
         }
     }
+
+    @Override
+    public void compact() throws IOException {
+        close();
+        final var it = iterator(ByteBuffer.allocate(0));
+        while (it.hasNext()) {
+            final var record = it.next();
+            upsert(record.getKey(), record.getValue());
+        }
+        final var diskTables = manager.diskTables();
+        manager.clear();
+        for(var disk : diskTables) {
+            disk.erase();
+        }
+    }
 }
