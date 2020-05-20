@@ -44,6 +44,19 @@ public final class PersistenceDAO implements DAO {
     }
 
     @NotNull
+    public Iterator<Record> iterator() {
+        final var diskTables = manager.diskTables();
+        final var diskIterators = new ArrayList<Iterator<Table.ICell>>();
+        diskIterators.add(currTable.iterator(from));
+        diskTables.forEach(diskTable -> diskIterators.add(diskTable.iterator()));
+        final var merge = Iterators.mergeSorted(diskIterators, Table.ICell::compareTo);
+        final var newest = Iters.collapseEquals(merge, Table.ICell::getKey);
+        final var removeDead = Iterators.filter(newest, el -> !el.getValue().isDead());
+
+        return Iterators.transform(removeDead, c -> Record.of(c.getKey(), c.getValue().getValue()));
+    }
+
+    @NotNull
     @Override
     public Iterator<Record> iterator(@NotNull final ByteBuffer from) {
         final var diskTables = manager.diskTables();
@@ -90,7 +103,7 @@ public final class PersistenceDAO implements DAO {
     @Override
     public void compact() throws IOException {
         close();
-        final var it = iterator(ByteBuffer.allocate(0));
+        final var it = iterator();
         final var diskTables = manager.diskTables();
         manager.clear();
         while (it.hasNext()) {

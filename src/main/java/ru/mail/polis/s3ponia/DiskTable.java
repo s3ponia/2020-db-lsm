@@ -48,6 +48,10 @@ public class DiskTable {
             return left;
         }
 
+        DiskTableIterator() {
+            elementIndex = 0;
+        }
+
         DiskTableIterator(@NotNull final ByteBuffer key) {
             elementIndex = getElementIndex(key);
         }
@@ -178,6 +182,10 @@ public class DiskTable {
             buff.flip().asIntBuffer().get(shifts);
             shifts[elementsQuantity] = arrayShift;
         }
+    }
+
+    public Iterator<Table.ICell> iterator() {
+        return new DiskTableIterator();
     }
 
     public Iterator<Table.ICell> iterator(@NotNull final ByteBuffer from) {
