@@ -97,7 +97,7 @@ public final class PersistenceDAO implements DAO {
         }
         final var diskTables = manager.diskTables();
         manager.clear();
-        for(var disk : diskTables) {
+        for (final var disk : diskTables) {
             disk.erase();
         }
     }
