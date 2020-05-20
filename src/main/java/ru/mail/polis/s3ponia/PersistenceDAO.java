@@ -43,6 +43,10 @@ public final class PersistenceDAO implements DAO {
         return new PersistenceDAO(data, memorySize);
     }
 
+    /**
+     * Return iterator over all existing records
+     * @return Iterator<Record> over all records
+     */
     @NotNull
     public Iterator<Record> iterator() {
         final var diskTables = manager.diskTables();
