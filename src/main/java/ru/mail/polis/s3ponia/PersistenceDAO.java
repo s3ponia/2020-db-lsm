@@ -47,7 +47,7 @@ public final class PersistenceDAO implements DAO {
     public Iterator<Record> iterator() {
         final var diskTables = manager.diskTables();
         final var diskIterators = new ArrayList<Iterator<Table.ICell>>();
-        diskIterators.add(currTable.iterator(from));
+        diskIterators.add(currTable.iterator());
         diskTables.forEach(diskTable -> diskIterators.add(diskTable.iterator()));
         final var merge = Iterators.mergeSorted(diskIterators, Table.ICell::compareTo);
         final var newest = Iters.collapseEquals(merge, Table.ICell::getKey);
